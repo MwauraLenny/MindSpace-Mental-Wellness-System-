@@ -1,4 +1,9 @@
 <x-guest-layout>
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">Create your MindSpace account</h1>
+        <p class="mt-1 text-sm text-gray-600">Sign up to track mood, journal privately, and join the routine community.</p>
+    </div>
+
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
@@ -37,6 +42,14 @@
                             name="password_confirmation" required autocomplete="new-password" />
 
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        </div>
+
+        <div class="mt-4">
+            <label for="anonymous_sharing" class="inline-flex items-center">
+                <input id="anonymous_sharing" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="anonymous_sharing" value="1" @checked(old('anonymous_sharing'))>
+                <span class="ms-2 text-sm text-gray-600">Enable anonymous sharing by default</span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">You can change this later from your profile settings.</p>
         </div>
 
         <div class="flex items-center justify-end mt-4">
