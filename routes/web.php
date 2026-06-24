@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\NotificationController;
@@ -24,6 +25,7 @@ Route::middleware('auth')->group(function () {
 });
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard');
+    Route::get('/analytics', [AnalyticsController::class, 'admin'])->name('admin.analytics');
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
     Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role.update');
@@ -37,6 +39,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::patch('/reports/{report}/moderate', [ReportController::class, 'moderate'])->name('admin.reports.moderate');
 });
 Route::middleware(['auth'])->group(function () {
+    Route::get('/analytics', [AnalyticsController::class, 'personal'])->name('analytics.personal');
+
     Route::get('/mood', [App\Http\Controllers\MoodLogController::class, 'index'])->name('mood.index');
     Route::post('/mood', [App\Http\Controllers\MoodLogController::class, 'store'])->name('mood.store');
     Route::get('/mood/dashboard', [App\Http\Controllers\MoodLogController::class, 'dashboard'])->name('mood.dashboard');

@@ -33,6 +33,9 @@
 <x-nav-link :href="route('reports.personal')" :active="request()->routeIs('reports.*')">
     {{ __('Reports') }}
 </x-nav-link>
+<x-nav-link :href="route('analytics.personal')" :active="request()->routeIs('analytics.*') || request()->routeIs('admin.analytics')">
+    {{ __('Analytics') }}
+</x-nav-link>
 <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
     {{ __('Notifications') }}
     @if($unreadNotificationCount > 0)
@@ -47,6 +50,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                             {{ __('Admin Reports') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
+                            {{ __('Admin Analytics') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -125,6 +131,10 @@
                 {{ __('Reports') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('analytics.personal')" :active="request()->routeIs('analytics.*') || request()->routeIs('admin.analytics')">
+                {{ __('Analytics') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
                 {{ __('Notifications') }}
                 @if($unreadNotificationCount > 0)
@@ -141,6 +151,10 @@
 
                 <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                     {{ __('Admin Reports') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
+                    {{ __('Admin Analytics') }}
                 </x-responsive-nav-link>
             @endif
         </div>
