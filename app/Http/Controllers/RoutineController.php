@@ -9,6 +9,7 @@ use App\Models\RoutineCategory;
 use App\Models\RoutineLike;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
+use App\Models\UserFollow;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -132,6 +133,10 @@ class RoutineController extends Controller
         $view = in_array($view, ['community', 'saved', 'mine', 'recommendations'], true) ? $view : 'community';
         $moodScope = $request->string('mood_scope')->toString();
         $moodScope = in_array($moodScope, ['all', 'match'], true) ? $moodScope : 'all';
+        $search = trim($request->string('q')->toString());
+        $explicitMoodTag = $request->integer('mood_tag');
+        $sort = $request->string('sort')->toString();
+        $sort = in_array($sort, ['latest', 'trending'], true) ? $sort : 'trending';
 
         $this->ensureDefaultCategories();
 
@@ -141,7 +146,7 @@ class RoutineController extends Controller
 
         $selectedCategory = $request->integer('category_id');
 
-        $routines = Routine::with([
+        $routinesQuery = Routine::query()->with([
                 'user',
                 'category',
                 'reactions',
@@ -155,13 +160,32 @@ class RoutineController extends Controller
             ])
             ->where('status', 'active')
             ->when(in_array($view, ['community', 'recommendations'], true) && $moodScope === 'match' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
+            ->when($explicitMoodTag >= 1 && $explicitMoodTag <= 5, fn ($q) => $q->where('mood_tag', $explicitMoodTag))
             ->when($view === 'mine', fn ($q) => $q->where('user_id', Auth::id()))
             ->when($view === 'saved', fn ($q) => $q->whereHas('saves', fn ($sub) => $sub->where('user_id', Auth::id())))
             ->when($selectedCategory > 0, fn ($q) => $q->where('routine_category_id', $selectedCategory))
-            ->withCount(['likes', 'saves', 'comments'])
-            ->orderBy('upvote_count', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($searchQuery) use ($search): void {
+                    $searchQuery
+                        ->where('title', 'like', '%'.$search.'%')
+                        ->orWhere('body', 'like', '%'.$search.'%')
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', '%'.$search.'%'));
+                });
+            })
+            ->withCount(['likes', 'saves', 'comments', 'reactions']);
+
+        if ($sort === 'latest') {
+            $routinesQuery
+                ->orderByDesc('created_at');
+        } else {
+            $routinesQuery
+                ->orderByDesc('upvote_count')
+                ->orderByDesc('reactions_count')
+                ->orderByDesc('comments_count')
+                ->orderByDesc('created_at');
+        }
+
+        $routines = $routinesQuery->get();
 
         $likedRoutineIds = RoutineLike::query()->where('user_id', Auth::id())
             ->pluck('routine_id')
@@ -170,6 +194,18 @@ class RoutineController extends Controller
         $savedRoutineIds = SavedRoutine::query()->where('user_id', Auth::id())
             ->pluck('routine_id')
             ->flip();
+
+        $followedUserIds = UserFollow::query()->where('follower_id', Auth::id())
+            ->pluck('followee_id')
+            ->flip();
+
+        $followerCountByRoutine = $routines->mapWithKeys(function (Routine $routine) {
+            $count = UserFollow::query()
+                ->where('followee_id', $routine->user_id)
+                ->count();
+
+            return [$routine->id => $count];
+        });
 
         $myReactions = RoutineReaction::query()->where('user_id', Auth::id())
             ->get()
@@ -195,20 +231,37 @@ class RoutineController extends Controller
 
         $recommendations = $this->buildRecommendations(Auth::id(), $latestLog);
 
+        $trendingRoutines = Routine::query()
+            ->with('user')
+            ->withCount(['likes', 'comments', 'reactions'])
+            ->where('status', 'active')
+            ->orderByDesc('upvote_count')
+            ->orderByDesc('reactions_count')
+            ->orderByDesc('comments_count')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
         return view('routines.index', compact(
             'routines',
             'moodFilter',
             'view',
             'moodScope',
+            'search',
+            'explicitMoodTag',
+            'sort',
             'categories',
             'selectedCategory',
             'likedRoutineIds',
             'savedRoutineIds',
+            'followedUserIds',
+            'followerCountByRoutine',
             'myReactions',
             'reactionMeta',
             'reactionCountsByRoutine',
             'engagementCountsByRoutine',
-            'recommendations'
+            'recommendations',
+            'trendingRoutines'
         ));
     }
 
@@ -333,6 +386,36 @@ class RoutineController extends Controller
         );
 
         return back()->with('success', 'Routine saved to your collection.');
+    }
+
+    public function followContributor(int $id)
+    {
+        $routine = Routine::findOrFail($id);
+        $followeeId = (int) $routine->user_id;
+        $followerId = (int) Auth::id();
+
+        if ($followeeId === $followerId) {
+            return back()->with('error', 'You cannot follow your own account.');
+        }
+
+        UserFollow::query()->firstOrCreate([
+            'follower_id' => $followerId,
+            'followee_id' => $followeeId,
+        ]);
+
+        return back()->with('success', 'Contributor followed.');
+    }
+
+    public function unfollowContributor(int $id)
+    {
+        $routine = Routine::findOrFail($id);
+
+        UserFollow::query()
+            ->where('follower_id', Auth::id())
+            ->where('followee_id', $routine->user_id)
+            ->delete();
+
+        return back()->with('success', 'Contributor unfollowed.');
     }
 
     public function react(Request $request, int $id)

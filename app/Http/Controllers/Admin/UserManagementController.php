@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Comment;
 use App\Models\Journal;
 use App\Models\MoodLog;
@@ -13,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -68,6 +70,15 @@ class UserManagementController extends Controller
             'role' => $validated['role'],
         ]);
 
+        $this->logAudit(
+            'admin.user.role_updated',
+            User::class,
+            (int) $user->id,
+            [
+                'new_role' => $validated['role'],
+            ]
+        );
+
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);
         $notificationService->createForUser(
@@ -104,6 +115,15 @@ class UserManagementController extends Controller
             ->where('user_id', $user->id)
             ->delete();
 
+        $this->logAudit(
+            'admin.user.suspended',
+            User::class,
+            (int) $user->id,
+            [
+                'reason' => $validated['reason'] ?? null,
+            ]
+        );
+
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);
         $notificationService->createForUser(
@@ -131,6 +151,13 @@ class UserManagementController extends Controller
             'suspension_reason' => null,
         ]);
 
+        $this->logAudit(
+            'admin.user.unsuspended',
+            User::class,
+            (int) $user->id,
+            []
+        );
+
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);
         $notificationService->createForUser(
@@ -152,6 +179,15 @@ class UserManagementController extends Controller
             return back()->with('error', 'You cannot delete your own account.');
         }
 
+        $this->logAudit(
+            'admin.user.deleted',
+            User::class,
+            (int) $user->id,
+            [
+                'email' => $user->email,
+            ]
+        );
+
         UserSession::endAllForUser((int) $user->id);
         DB::table('sessions')
             ->where('user_id', $user->id)
@@ -160,6 +196,63 @@ class UserManagementController extends Controller
         User::query()->whereKey($user->id)->delete();
 
         return back()->with('success', 'User deleted successfully.');
+    }
+
+    public function ban(Request $request, User $user): RedirectResponse
+    {
+        if ($request->user()?->id === $user->id) {
+            return back()->with('error', 'You cannot ban your own account.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user->update([
+            'banned_at' => now(),
+            'ban_reason' => $validated['reason'] ?? null,
+            'suspended_at' => now(),
+            'suspension_reason' => $validated['reason'] ?? 'Auto-suspended due to ban.',
+        ]);
+
+        UserSession::endAllForUser((int) $user->id);
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->delete();
+
+        $this->logAudit(
+            'admin.user.banned',
+            User::class,
+            (int) $user->id,
+            [
+                'reason' => $validated['reason'] ?? null,
+            ]
+        );
+
+        return back()->with('success', 'User banned successfully.');
+    }
+
+    public function unban(Request $request, User $user): RedirectResponse
+    {
+        if (! $user->banned_at) {
+            return back()->with('success', 'User account is not banned.');
+        }
+
+        $user->update([
+            'banned_at' => null,
+            'ban_reason' => null,
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ]);
+
+        $this->logAudit(
+            'admin.user.unbanned',
+            User::class,
+            (int) $user->id,
+            []
+        );
+
+        return back()->with('success', 'User unbanned successfully.');
     }
 
     public function activity(User $user): View
@@ -251,5 +344,17 @@ class UserManagementController extends Controller
             ->sortByDesc('at')
             ->take(30)
             ->values();
+    }
+
+    private function logAudit(string $action, string $targetType, int $targetId, array $meta): void
+    {
+        AuditLog::query()->create([
+            'actor_id' => Auth::id(),
+            'action' => $action,
+            'target_type' => $targetType,
+            'target_id' => $targetId,
+            'meta' => $meta,
+            'performed_at' => now(),
+        ]);
     }
 }

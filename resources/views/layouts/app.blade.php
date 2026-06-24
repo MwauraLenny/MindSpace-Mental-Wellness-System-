@@ -16,6 +16,57 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <script>
+            (function () {
+                const storedTheme = localStorage.getItem('mindspace-theme');
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const shouldUseDark = storedTheme ? storedTheme === 'dark' : prefersDark;
+
+                if (shouldUseDark) {
+                    document.documentElement.classList.add('dark');
+                }
+            })();
+        </script>
+
+        <style>
+            html.dark body,
+            html.dark .min-h-screen {
+                background-color: #0f172a;
+                color: #e5e7eb;
+            }
+
+            html.dark .bg-white {
+                background-color: #111827 !important;
+            }
+
+            html.dark .bg-gray-50,
+            html.dark .bg-gray-100 {
+                background-color: #1f2937 !important;
+            }
+
+            html.dark .text-gray-900,
+            html.dark .text-gray-800,
+            html.dark .text-gray-700,
+            html.dark .text-gray-600,
+            html.dark .text-gray-500,
+            html.dark .text-gray-400 {
+                color: #e5e7eb !important;
+            }
+
+            html.dark .border-gray-100,
+            html.dark .border-gray-200,
+            html.dark .border-gray-300 {
+                border-color: #374151 !important;
+            }
+
+            html.dark input,
+            html.dark select,
+            html.dark textarea {
+                background-color: #111827;
+                color: #e5e7eb;
+            }
+        </style>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
@@ -35,5 +86,15 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <script>
+            document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const root = document.documentElement;
+                    const isDark = root.classList.toggle('dark');
+                    localStorage.setItem('mindspace-theme', isDark ? 'dark' : 'light');
+                });
+            });
+        </script>
     </body>
 </html>

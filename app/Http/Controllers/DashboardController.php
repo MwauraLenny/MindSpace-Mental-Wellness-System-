@@ -8,6 +8,7 @@ use App\Models\MoodLog;
 use App\Models\Notification;
 use App\Models\Report;
 use App\Models\Routine;
+use App\Models\SavedRoutine;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -86,6 +87,43 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
+        $achievementBadges = collect();
+
+        if ($moodLogs->count() >= 7) {
+            $achievementBadges->push([
+                'title' => 'Consistency Starter',
+                'description' => 'Logged at least 7 mood entries.',
+            ]);
+        }
+
+        if ($moodLogs->count() >= 30) {
+            $achievementBadges->push([
+                'title' => 'Mood Historian',
+                'description' => 'Logged 30+ mood entries.',
+            ]);
+        }
+
+        if (Routine::query()->where('user_id', $user->id)->count() >= 3) {
+            $achievementBadges->push([
+                'title' => 'Routine Mentor',
+                'description' => 'Shared at least 3 routines with the community.',
+            ]);
+        }
+
+        if (SavedRoutine::query()->where('user_id', $user->id)->count() >= 5) {
+            $achievementBadges->push([
+                'title' => 'Curator',
+                'description' => 'Bookmarked at least 5 helpful routines.',
+            ]);
+        }
+
+        if (Comment::query()->where('user_id', $user->id)->count() >= 10) {
+            $achievementBadges->push([
+                'title' => 'Community Encourager',
+                'description' => 'Posted 10+ supportive comments.',
+            ]);
+        }
+
         return view('dashboard', [
             'moodCategories' => $moodCategories,
             'latestMood' => $latestMood,
@@ -97,6 +135,7 @@ class DashboardController extends Controller
             'recommendations' => $recommendations,
             'notifications' => $notifications,
             'communityActivity' => $communityActivity,
+            'achievementBadges' => $achievementBadges,
         ]);
     }
 

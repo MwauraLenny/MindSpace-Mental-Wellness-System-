@@ -12,6 +12,40 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <article class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Weekly Mood Report</p>
+                    <p class="text-sm text-gray-700 mt-2">Entries: {{ $weeklyMoodReport['entries'] }}</p>
+                    <p class="text-sm text-gray-700">Avg score: {{ $weeklyMoodReport['average_score'] }}</p>
+                    <p class="text-sm text-gray-700">Positive rate: {{ $weeklyMoodReport['positive_rate'] }}%</p>
+                </article>
+
+                <article class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Monthly Mood Report</p>
+                    <p class="text-sm text-gray-700 mt-2">Entries: {{ $monthlyMoodReport['entries'] }}</p>
+                    <p class="text-sm text-gray-700">Avg score: {{ $monthlyMoodReport['average_score'] }}</p>
+                    <p class="text-sm text-gray-700">Positive rate: {{ $monthlyMoodReport['positive_rate'] }}%</p>
+                </article>
+
+                <article class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Mood Streak</p>
+                    <p class="text-2xl font-bold text-indigo-700 mt-2">{{ $moodStreaks['current'] }} days</p>
+                    <p class="text-sm text-gray-600 mt-1">Longest streak: {{ $moodStreaks['longest'] }} days</p>
+                </article>
+
+                <article class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Most Improved Week</p>
+                    @if($mostImprovedMoodReport['improvement'] > 0)
+                        <p class="text-2xl font-bold text-emerald-700 mt-2">+{{ $mostImprovedMoodReport['improvement'] }}</p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            {{ $mostImprovedMoodReport['from_week'] }} to {{ $mostImprovedMoodReport['to_week'] }}
+                        </p>
+                    @else
+                        <p class="text-sm text-gray-600 mt-2">More entries are needed to detect an improvement window.</p>
+                    @endif
+                </article>
+            </section>
+
             <section class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800">Mood Frequency</h3>
                 <p class="text-sm text-gray-600 mt-1">Total entries: {{ $totalMoodEntries }}</p>

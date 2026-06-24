@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Journal;
 use App\Models\MoodLog;
+use App\Models\AuditLog;
 use App\Models\Report;
 use App\Models\Routine;
 use App\Models\RoutineLike;
@@ -191,6 +192,18 @@ class ReportController extends Controller
         }
 
         $report->save();
+
+        AuditLog::query()->create([
+            'actor_id' => Auth::id(),
+            'action' => 'admin.report.moderated',
+            'target_type' => Report::class,
+            'target_id' => (int) $report->id,
+            'meta' => [
+                'moderation_action' => $validated['action'],
+                'result_status' => $report->status,
+            ],
+            'performed_at' => now(),
+        ]);
 
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);

@@ -144,6 +144,16 @@
                 <form method="GET" action="{{ route('community.feed') }}" class="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="view" value="{{ $view }}">
 
+                    <label for="q" class="text-sm font-medium text-gray-700">Search</label>
+                    <input
+                        id="q"
+                        name="q"
+                        type="text"
+                        value="{{ $search }}"
+                        class="rounded border-gray-300 text-sm"
+                        placeholder="Title, details, or contributor"
+                    >
+
                     @if(in_array($view, ['community', 'recommendations'], true))
                         <label for="mood_scope" class="text-sm font-medium text-gray-700">Mood scope</label>
                         <select id="mood_scope" name="mood_scope" class="rounded border-gray-300 text-sm">
@@ -161,10 +171,41 @@
                             </option>
                         @endforeach
                     </select>
+
+                    <label for="mood_tag" class="text-sm font-medium text-gray-700">Mood level</label>
+                    <select id="mood_tag" name="mood_tag" class="rounded border-gray-300 text-sm">
+                        <option value="0">All moods</option>
+                        @foreach([1=>'😢 1',2=>'😟 2',3=>'😐 3',4=>'🙂 4',5=>'😄 5'] as $moodValue => $moodLabel)
+                            <option value="{{ $moodValue }}" @selected((int) $explicitMoodTag === (int) $moodValue)>
+                                {{ $moodLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <label for="sort" class="text-sm font-medium text-gray-700">Sort</label>
+                    <select id="sort" name="sort" class="rounded border-gray-300 text-sm">
+                        <option value="trending" @selected($sort === 'trending')>Trending first</option>
+                        <option value="latest" @selected($sort === 'latest')>Latest first</option>
+                    </select>
+
                     <button type="submit" class="px-3 py-1.5 rounded text-sm bg-gray-700 text-white hover:bg-gray-800">
                         Apply filter
                     </button>
                 </form>
+
+                <div class="bg-gray-50 border border-gray-100 rounded p-3">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Trending routines</p>
+                    <div class="space-y-1 text-sm">
+                        @forelse($trendingRoutines as $trend)
+                            <a href="#routine-{{ $trend->id }}" class="block text-indigo-700 hover:underline">
+                                {{ $trend->display_title }}
+                                <span class="text-xs text-gray-500">(👍 {{ $trend->likes_count }} · 💬 {{ $trend->comments_count }})</span>
+                            </a>
+                        @empty
+                            <p class="text-gray-500">No trending items yet.</p>
+                        @endforelse
+                    </div>
+                </div>
             </div>
 
             @forelse($routines as $routine)
@@ -198,9 +239,28 @@
                             @csrf
                             <button type="submit"
                                 class="text-sm px-3 py-1 rounded {{ isset($savedRoutineIds[$routine->id]) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700' }} hover:bg-gray-200">
-                                {{ isset($savedRoutineIds[$routine->id]) ? 'Saved' : 'Save routine' }}
+                                {{ isset($savedRoutineIds[$routine->id]) ? 'Bookmarked' : 'Bookmark' }}
                             </button>
                         </form>
+
+                        @if((int) $routine->user_id !== (int) Auth::id())
+                            @if(isset($followedUserIds[$routine->user_id]))
+                                <form method="POST" action="{{ route('routines.unfollow', $routine->id) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-sm px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">
+                                        Following ({{ $followerCountByRoutine[$routine->id] ?? 0 }})
+                                    </button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('routines.follow', $routine->id) }}">
+                                    @csrf
+                                    <button type="submit" class="text-sm px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                        Follow contributor ({{ $followerCountByRoutine[$routine->id] ?? 0 }})
+                                    </button>
+                                </form>
+                            @endif
+                        @endif
 
                         @if($routine->user_id !== Auth::id())
                             <details class="text-sm">

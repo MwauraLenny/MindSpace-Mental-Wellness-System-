@@ -144,6 +144,22 @@
             </div>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Achievements</h3>
+                <p class="text-sm text-gray-600 mt-1">Badges unlocked through healthy consistency and community participation.</p>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @forelse($achievementBadges as $badge)
+                        <article class="rounded-md border border-emerald-100 bg-emerald-50/60 p-4">
+                            <p class="font-semibold text-emerald-800">{{ $badge['title'] }}</p>
+                            <p class="text-sm text-emerald-700 mt-1">{{ $badge['description'] }}</p>
+                        </article>
+                    @empty
+                        <p class="text-sm text-gray-500">No badges unlocked yet. Keep logging moods and participating in the community.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800">Community Activity</h3>
                 <p class="text-sm text-gray-600 mt-1">Latest routines being shared across the community.</p>
 

@@ -198,6 +198,38 @@ Run steps:
 3. Start app server (example): `php artisan serve`
 4. Run tests: `npm run e2e`
 
+## Recommended Feature Extensions Implemented
+
+### User Features
+
+- Forgot password: available via `password.request` route and auth screens.
+- Search routines: community feed supports keyword search (`q`) across title/body/contributor.
+- Filter routines by mood: community feed supports explicit mood filter (`mood_tag`) and latest mood scope.
+- Bookmark favorites: routine bookmark toggle is available in feed (`Bookmark` / `Bookmarked`).
+- User achievements/badges: dashboard now surfaces unlocked achievement badges.
+- Dark mode: persistent theme toggle is available on authenticated and guest screens.
+
+### Community Features
+
+- Comments: routine-level comments are supported.
+- Replies: threaded replies are supported for routine comments.
+- Follow favorite contributors: follow/unfollow contributor actions added from routine cards.
+- Trending routines: trending sort and a trending routines panel are available in community feed.
+
+### Admin Features
+
+- User suspension: available from user management.
+- User banning: ban/unban actions available from user management.
+- Audit logs: dedicated admin audit log page with filtering (`/admin/audit-logs`).
+- Moderation history: available in reports/admin moderation center and now also written to audit logs.
+
+### Analytics Features
+
+- Weekly mood report: personal analytics weekly card.
+- Monthly mood report: personal analytics monthly card.
+- Mood streaks: current and longest streak metrics.
+- Most improved mood report: best weekly improvement window shown in personal analytics.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

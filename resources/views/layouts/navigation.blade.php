@@ -58,12 +58,23 @@
                         <x-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
                             {{ __('Admin Analytics') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.audit-logs.index')" :active="request()->routeIs('admin.audit-logs.*')">
+                            {{ __('Audit Logs') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
 
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
+                <button
+                    type="button"
+                    data-theme-toggle
+                    class="inline-flex items-center px-3 py-2 mr-3 rounded-md text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
+                >
+                    Toggle Theme
+                </button>
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -168,6 +179,10 @@
                 <x-responsive-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
                     {{ __('Admin Analytics') }}
                 </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('admin.audit-logs.index')" :active="request()->routeIs('admin.audit-logs.*')">
+                    {{ __('Audit Logs') }}
+                </x-responsive-nav-link>
             @endif
         </div>
 
@@ -179,6 +194,14 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <button
+                    type="button"
+                    data-theme-toggle
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                    Toggle Theme
+                </button>
+
                 <x-responsive-nav-link :href="route('profile.show')">
                     {{ __('View Profile') }}
                 </x-responsive-nav-link>

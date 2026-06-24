@@ -25,6 +25,8 @@ class User extends Authenticatable
         'anonymous_sharing',
         'suspended_at',
         'suspension_reason',
+        'banned_at',
+        'ban_reason',
     ];
 
     /**
@@ -39,12 +41,18 @@ class User extends Authenticatable
             'password' => 'hashed',
             'anonymous_sharing' => 'boolean',
             'suspended_at' => 'datetime',
+            'banned_at' => 'datetime',
         ];
     }
 
     public function getIsSuspendedAttribute(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    public function getIsBannedAttribute(): bool
+    {
+        return $this->banned_at !== null;
     }
 
     public function journals()
@@ -85,5 +93,20 @@ class User extends Authenticatable
     public function userSessions()
     {
         return $this->hasMany(UserSession::class);
+    }
+
+    public function following()
+    {
+        return $this->hasMany(UserFollow::class, 'follower_id');
+    }
+
+    public function followers()
+    {
+        return $this->hasMany(UserFollow::class, 'followee_id');
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class, 'actor_id');
     }
 }

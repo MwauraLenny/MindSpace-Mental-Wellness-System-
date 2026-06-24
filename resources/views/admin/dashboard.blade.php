@@ -119,6 +119,13 @@
                     >
                         Review Reports
                     </a>
+
+                    <a
+                        href="{{ route('admin.audit-logs.index') }}"
+                        class="inline-flex items-center px-4 py-2 bg-slate-700 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-800"
+                    >
+                        Open Audit Logs
+                    </a>
                 </div>
             </div>
 

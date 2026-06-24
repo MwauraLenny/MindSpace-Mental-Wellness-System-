@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
@@ -36,7 +37,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/users/{user}/activity', [UserManagementController::class, 'activity'])->name('admin.users.activity');
     Route::patch('/users/{user}/suspend', [UserManagementController::class, 'suspend'])->name('admin.users.suspend');
     Route::patch('/users/{user}/unsuspend', [UserManagementController::class, 'unsuspend'])->name('admin.users.unsuspend');
+    Route::patch('/users/{user}/ban', [UserManagementController::class, 'ban'])->name('admin.users.ban');
+    Route::patch('/users/{user}/unban', [UserManagementController::class, 'unban'])->name('admin.users.unban');
     Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
     Route::get('/moderation', [ReportController::class, 'admin'])->name('admin.moderation.index');
     Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
@@ -61,6 +65,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');
     Route::post('/routines/{id}/save', [App\Http\Controllers\RoutineController::class, 'save'])->name('routines.save');
+    Route::post('/routines/{id}/follow', [App\Http\Controllers\RoutineController::class, 'followContributor'])->name('routines.follow');
+    Route::delete('/routines/{id}/follow', [App\Http\Controllers\RoutineController::class, 'unfollowContributor'])->name('routines.unfollow');
     Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');

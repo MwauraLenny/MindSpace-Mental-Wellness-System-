@@ -40,7 +40,11 @@
                                     <td class="px-4 py-3">{{ $user->email }}</td>
                                     <td class="px-4 py-3 capitalize">{{ $user->role }}</td>
                                     <td class="px-4 py-3">
-                                        @if($user->is_suspended)
+                                        @if($user->is_banned)
+                                            <span class="inline-flex items-center px-2 py-1 rounded bg-red-200 text-red-800 text-xs">
+                                                Banned
+                                            </span>
+                                        @elseif($user->is_suspended)
                                             <span class="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-700 text-xs">
                                                 Suspended
                                             </span>
@@ -79,7 +83,15 @@
                                                 Activity History
                                             </a>
 
-                                            @if($user->is_suspended)
+                                            @if($user->is_banned)
+                                                <form method="POST" action="{{ route('admin.users.unban', $user) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 rounded bg-emerald-100 text-emerald-700 text-xs hover:bg-emerald-200">
+                                                        Unban
+                                                    </button>
+                                                </form>
+                                            @elseif($user->is_suspended)
                                                 <form method="POST" action="{{ route('admin.users.unsuspend', $user) }}">
                                                     @csrf
                                                     @method('PATCH')
@@ -98,6 +110,20 @@
                                                         <textarea name="reason" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional suspension reason"></textarea>
                                                         <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-1.5 rounded bg-amber-600 text-white text-xs hover:bg-amber-700">
                                                             Confirm Suspend
+                                                        </button>
+                                                    </form>
+                                                </details>
+
+                                                <details>
+                                                    <summary class="inline-flex cursor-pointer items-center px-3 py-1.5 rounded bg-red-100 text-red-700 text-xs hover:bg-red-200">
+                                                        Ban
+                                                    </summary>
+                                                    <form method="POST" action="{{ route('admin.users.ban', $user) }}" class="mt-2 p-3 border border-red-200 rounded bg-red-50/40 space-y-2 w-56">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <textarea name="reason" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional ban reason"></textarea>
+                                                        <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-1.5 rounded bg-red-600 text-white text-xs hover:bg-red-700">
+                                                            Confirm Ban
                                                         </button>
                                                     </form>
                                                 </details>

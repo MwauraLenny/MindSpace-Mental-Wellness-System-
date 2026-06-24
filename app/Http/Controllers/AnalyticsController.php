@@ -52,6 +52,83 @@ class AnalyticsController extends Controller
             ->sortKeys()
             ->take(-30);
 
+        $weeklyWindowStart = Carbon::now()->subDays(7)->startOfDay();
+        $monthlyWindowStart = Carbon::now()->subDays(30)->startOfDay();
+
+        $weeklyMoodLogs = $moodLogs->filter(fn ($log) => optional($log->logged_at)?->greaterThanOrEqualTo($weeklyWindowStart));
+        $monthlyMoodLogs = $moodLogs->filter(fn ($log) => optional($log->logged_at)?->greaterThanOrEqualTo($monthlyWindowStart));
+
+        $weeklyMoodReport = [
+            'entries' => $weeklyMoodLogs->count(),
+            'average_score' => $weeklyMoodLogs->isNotEmpty() ? round($weeklyMoodLogs->avg('mood_value'), 2) : 0,
+            'positive_rate' => $weeklyMoodLogs->isNotEmpty() ? round(($weeklyMoodLogs->where('mood_value', '>=', 4)->count() / $weeklyMoodLogs->count()) * 100, 1) : 0,
+        ];
+
+        $monthlyMoodReport = [
+            'entries' => $monthlyMoodLogs->count(),
+            'average_score' => $monthlyMoodLogs->isNotEmpty() ? round($monthlyMoodLogs->avg('mood_value'), 2) : 0,
+            'positive_rate' => $monthlyMoodLogs->isNotEmpty() ? round(($monthlyMoodLogs->where('mood_value', '>=', 4)->count() / $monthlyMoodLogs->count()) * 100, 1) : 0,
+        ];
+
+        $dailyLogMap = $moodLogs
+            ->filter(fn ($log) => optional($log->logged_at) !== null)
+            ->map(fn ($log) => optional($log->logged_at)->toDateString())
+            ->unique()
+            ->flip();
+
+        $currentStreak = 0;
+        $cursor = Carbon::today();
+
+        while ($dailyLogMap->has($cursor->toDateString())) {
+            $currentStreak++;
+            $cursor = $cursor->subDay();
+        }
+
+        $longestStreak = 0;
+        $activeRun = 0;
+        $allDates = $dailyLogMap->keys()->sort()->values();
+        $previousDate = null;
+
+        foreach ($allDates as $dateString) {
+            $date = Carbon::parse($dateString);
+
+            if ($previousDate && $date->diffInDays($previousDate) === 1) {
+                $activeRun++;
+            } else {
+                $activeRun = 1;
+            }
+
+            $longestStreak = max($longestStreak, $activeRun);
+            $previousDate = $date;
+        }
+
+        $weekAverages = $moodLogs
+            ->filter(fn ($log) => optional($log->logged_at) !== null)
+            ->groupBy(fn ($log) => optional($log->logged_at)->startOfWeek()->format('Y-m-d'))
+            ->map(fn ($logs) => round($logs->avg('mood_value'), 2))
+            ->sortKeys();
+
+        $mostImprovedMoodReport = [
+            'improvement' => 0,
+            'from_week' => null,
+            'to_week' => null,
+        ];
+
+        $weekKeys = $weekAverages->keys()->values();
+        for ($i = 1; $i < $weekKeys->count(); $i++) {
+            $previousKey = (string) $weekKeys[$i - 1];
+            $currentKey = (string) $weekKeys[$i];
+            $improvement = round(((float) $weekAverages[$currentKey]) - ((float) $weekAverages[$previousKey]), 2);
+
+            if ($improvement > $mostImprovedMoodReport['improvement']) {
+                $mostImprovedMoodReport = [
+                    'improvement' => $improvement,
+                    'from_week' => $previousKey,
+                    'to_week' => $currentKey,
+                ];
+            }
+        }
+
         $mostUsedRoutines = DB::table('routines')
             ->leftJoin('routine_likes as rl', function ($join) use ($userId): void {
                 $join->on('routines.id', '=', 'rl.routine_id')
@@ -110,6 +187,13 @@ class AnalyticsController extends Controller
             'mostUsedRoutines' => $mostUsedRoutines,
             'moodDistributionLabels' => $moodDistribution->pluck('label')->values(),
             'moodDistributionCounts' => $moodDistribution->pluck('count')->values(),
+            'weeklyMoodReport' => $weeklyMoodReport,
+            'monthlyMoodReport' => $monthlyMoodReport,
+            'moodStreaks' => [
+                'current' => $currentStreak,
+                'longest' => $longestStreak,
+            ],
+            'mostImprovedMoodReport' => $mostImprovedMoodReport,
         ]);
     }
 

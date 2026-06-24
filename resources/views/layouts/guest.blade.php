@@ -13,9 +13,47 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <script>
+            (function () {
+                const storedTheme = localStorage.getItem('mindspace-theme');
+                if (storedTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                }
+            })();
+        </script>
+
+        <style>
+            html.dark body,
+            html.dark .min-h-screen {
+                background: #0f172a;
+                color: #e5e7eb;
+            }
+
+            html.dark .bg-white\/95 {
+                background-color: #111827 !important;
+            }
+
+            html.dark .text-gray-900,
+            html.dark .text-teal-700 {
+                color: #e5e7eb !important;
+            }
+
+            html.dark .ring-teal-100 {
+                --tw-ring-color: #374151 !important;
+            }
+        </style>
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 py-8 bg-gradient-to-b from-teal-50 via-white to-emerald-50">
+            <button
+                type="button"
+                data-theme-toggle
+                class="self-end mb-3 inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
+            >
+                Toggle Theme
+            </button>
+
             <div class="text-center">
                 <a href="/" class="inline-flex justify-center">
                     <x-application-logo class="w-16 h-16 fill-current text-teal-700" />
@@ -27,5 +65,15 @@
                 {{ $slot }}
             </div>
         </div>
+
+        <script>
+            document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const root = document.documentElement;
+                    const isDark = root.classList.toggle('dark');
+                    localStorage.setItem('mindspace-theme', isDark ? 'dark' : 'light');
+                });
+            });
+        </script>
     </body>
 </html>
