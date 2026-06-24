@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/mood/export/pdf', [App\Http\Controllers\MoodLogController::class, 'exportPdf'])->name('mood.export.pdf');
 });
 Route::middleware(['auth'])->group(function () {
+    Route::get('/community', [App\Http\Controllers\RoutineController::class, 'feed'])->name('community.feed');
     Route::get('/routines', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.index');
     Route::get('/routines/saved', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.saved');
     Route::get('/routines/create', [App\Http\Controllers\RoutineController::class, 'create'])->name('routines.create');

@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Community Wellness Routines
+                Community Feed
             </h2>
             <a href="{{ route('routines.create') }}"
                 class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            @if($moodFilter)
+            @if($moodFilter && $view === 'community' && $moodScope === 'match')
                 <div class="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded text-sm">
                     Showing routines matched to your current mood:
                     {{ [1=>'😢',2=>'😟',3=>'😐',4=>'🙂',5=>'😄'][$moodFilter] }} (level {{ $moodFilter }})
@@ -43,8 +43,17 @@
                     </a>
                 </div>
 
-                <form method="GET" action="{{ route('routines.index') }}" class="flex flex-wrap items-center gap-2">
+                <form method="GET" action="{{ route('community.feed') }}" class="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="view" value="{{ $view }}">
+
+                    @if($view === 'community')
+                        <label for="mood_scope" class="text-sm font-medium text-gray-700">Mood scope</label>
+                        <select id="mood_scope" name="mood_scope" class="rounded border-gray-300 text-sm">
+                            <option value="all" @selected($moodScope === 'all')>All shared routines</option>
+                            <option value="match" @selected($moodScope === 'match')>Match my latest mood</option>
+                        </select>
+                    @endif
+
                     <label for="category_id" class="text-sm font-medium text-gray-700">Category</label>
                     <select id="category_id" name="category_id" class="rounded border-gray-300 text-sm">
                         <option value="">All categories</option>
@@ -111,7 +120,7 @@
                     </div>
 
                     <div class="mt-2 text-xs text-gray-500">
-                        {{ $routine->saves_count }} saved
+                        {{ $routine->saves_count }} saved · {{ $routine->comments_count }} comments · {{ $reactionCountsByRoutine[$routine->id]->sum() }} reactions · {{ $engagementCountsByRoutine[$routine->id] }} total engagement
                     </div>
 
                     <div class="mt-4 border-t border-gray-100 pt-4">

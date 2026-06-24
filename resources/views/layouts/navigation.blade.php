@@ -18,7 +18,7 @@
 		<x-nav-link :href="route('mood.index')" :active="request()->routeIs('mood.*')">
     {{ __('Log Mood') }}
 </x-nav-link>
-<x-nav-link :href="route('routines.index')" :active="request()->routeIs('routines.*')">
+<x-nav-link :href="route('community.feed')" :active="request()->routeIs('community.*', 'routines.*')">
     {{ __('Community') }}
 </x-nav-link>
 <x-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
@@ -93,7 +93,7 @@
                 {{ __('Log Mood') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('routines.index')" :active="request()->routeIs('routines.*')">
+            <x-responsive-nav-link :href="route('community.feed')" :active="request()->routeIs('community.*', 'routines.*')">
                 {{ __('Community') }}
             </x-responsive-nav-link>
 

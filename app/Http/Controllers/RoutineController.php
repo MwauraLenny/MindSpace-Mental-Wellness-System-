@@ -55,6 +55,11 @@ class RoutineController extends Controller
     // Show community feed filtered by user's latest mood
     public function index(Request $request)
     {
+        return $this->feed($request);
+    }
+
+    public function feed(Request $request)
+    {
         $latestLog = MoodLog::where('user_id', Auth::id())
                         ->orderBy('logged_at', 'desc')
                         ->first();
@@ -62,6 +67,8 @@ class RoutineController extends Controller
         $moodFilter = $latestLog ? $latestLog->mood_value : null;
         $view = $request->string('view')->toString();
         $view = in_array($view, ['community', 'saved', 'mine'], true) ? $view : 'community';
+        $moodScope = $request->string('mood_scope')->toString();
+        $moodScope = in_array($moodScope, ['all', 'match'], true) ? $moodScope : 'all';
 
         $this->ensureDefaultCategories();
 
@@ -84,11 +91,11 @@ class RoutineController extends Controller
                     ->latest(),
             ])
             ->where('status', 'active')
-            ->when($view === 'community' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
+            ->when($view === 'community' && $moodScope === 'match' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
             ->when($view === 'mine', fn ($q) => $q->where('user_id', Auth::id()))
             ->when($view === 'saved', fn ($q) => $q->whereHas('saves', fn ($sub) => $sub->where('user_id', Auth::id())))
             ->when($selectedCategory > 0, fn ($q) => $q->where('routine_category_id', $selectedCategory))
-            ->withCount(['likes', 'saves'])
+            ->withCount(['likes', 'saves', 'comments'])
             ->orderBy('upvote_count', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -114,17 +121,28 @@ class RoutineController extends Controller
             return [$routine->id => $counts];
         });
 
+        $engagementCountsByRoutine = $routines->mapWithKeys(function ($routine) use ($reactionCountsByRoutine) {
+            $total = (int) $routine->likes_count
+                + (int) $routine->saves_count
+                + (int) $routine->comments_count
+                + (int) $reactionCountsByRoutine[$routine->id]->sum();
+
+            return [$routine->id => $total];
+        });
+
         return view('routines.index', compact(
             'routines',
             'moodFilter',
             'view',
+            'moodScope',
             'categories',
             'selectedCategory',
             'likedRoutineIds',
             'savedRoutineIds',
             'myReactions',
             'reactionMeta',
-            'reactionCountsByRoutine'
+            'reactionCountsByRoutine',
+            'engagementCountsByRoutine'
         ));
     }
 
