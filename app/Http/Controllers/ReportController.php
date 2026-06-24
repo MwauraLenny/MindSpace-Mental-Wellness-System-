@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Comment;
 use App\Models\Journal;
 use App\Models\MoodLog;
@@ -15,20 +14,21 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function student(): View
+    public function personal(): View
     {
-        return view('reports.student', $this->buildStudentReportData(Auth::id()));
+        return view('reports.personal', $this->buildPersonalReportData(Auth::id()));
     }
 
-    public function studentExportCsv(): StreamedResponse
+    public function personalExportCsv(): StreamedResponse
     {
-        $data = $this->buildStudentReportData(Auth::id());
-        $filename = 'student-report-'.Carbon::now()->format('Ymd_His').'.csv';
+        $data = $this->buildPersonalReportData(Auth::id());
+        $filename = 'user-report-'.Carbon::now()->format('Ymd_His').'.csv';
 
         return response()->streamDownload(function () use ($data): void {
             $handle = fopen('php://output', 'wb');
@@ -67,15 +67,16 @@ class ReportController extends Controller
         ]);
     }
 
-    public function studentExportPdf(): Response
+    public function personalExportPdf(): Response
     {
-        $data = $this->buildStudentReportData(Auth::id());
+        $data = $this->buildPersonalReportData(Auth::id());
 
-        $pdf = Pdf::loadView('reports.student-export-pdf', array_merge($data, [
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('reports.personal-export-pdf', array_merge($data, [
             'generatedAt' => Carbon::now(),
         ]));
 
-        return $pdf->download('student-report-'.Carbon::now()->format('Ymd_His').'.pdf');
+        return $pdf->download('user-report-'.Carbon::now()->format('Ymd_His').'.pdf');
     }
 
     public function admin(): View
@@ -127,14 +128,15 @@ class ReportController extends Controller
     {
         $data = $this->buildAdminReportData();
 
-        $pdf = Pdf::loadView('reports.admin-export-pdf', array_merge($data, [
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('reports.admin-export-pdf', array_merge($data, [
             'generatedAt' => Carbon::now(),
         ]));
 
         return $pdf->download('admin-report-'.Carbon::now()->format('Ymd_His').'.pdf');
     }
 
-    private function buildStudentReportData(int $userId): array
+    private function buildPersonalReportData(int $userId): array
     {
         $moodLogs = MoodLog::query()
             ->where('user_id', $userId)
@@ -219,7 +221,7 @@ class ReportController extends Controller
     {
         $activeWindowStart = Carbon::now()->subDays(30)->startOfDay();
 
-        $totalUsers = User::query()->count();
+        $totalUsers = DB::table('users')->count();
 
         $activeUserIds = collect()
             ->merge(MoodLog::query()->where('logged_at', '>=', $activeWindowStart)->pluck('user_id'))
@@ -234,8 +236,8 @@ class ReportController extends Controller
 
         $activeUsers = $activeUserIds->count();
 
-        $mostCommonMoods = MoodLog::query()
-            ->selectRaw('mood_category, count(*) as total')
+        $mostCommonMoods = DB::table('mood_logs')
+            ->select('mood_category', DB::raw('COUNT(*) as total'))
             ->groupBy('mood_category')
             ->orderByDesc('total')
             ->limit(5)
@@ -264,12 +266,12 @@ class ReportController extends Controller
             ->get();
 
         $reportStats = [
-            'total' => Report::query()->count(),
+            'total' => DB::table('reports')->count(),
             'pending' => Report::query()->where('status', 'pending')->count(),
             'resolved' => Report::query()->where('status', 'resolved')->count(),
             'dismissed' => Report::query()->where('status', 'dismissed')->count(),
-            'by_type' => Report::query()
-                ->selectRaw('reportable_type, count(*) as total')
+            'by_type' => DB::table('reports')
+                ->select('reportable_type', DB::raw('COUNT(*) as total'))
                 ->groupBy('reportable_type')
                 ->orderByDesc('total')
                 ->get(),

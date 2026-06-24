@@ -14,9 +14,10 @@ class ReportingSystemTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_can_view_reports_with_mood_trends_and_activity_summary(): void
+    public function test_user_can_view_reports_with_mood_trends_and_activity_summary(): void
     {
-        $user = User::factory()->create();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         MoodLog::create([
             'user_id' => $user->id,
@@ -34,10 +35,10 @@ class ReportingSystemTest extends TestCase
             'logged_at' => now(),
         ]);
 
-        $response = $this->actingAs($user)->get('/reports/student');
+        $response = $this->actingAs($user)->get('/reports/personal');
 
         $response->assertOk();
-        $response->assertSee('Student Reports');
+        $response->assertSee('Personal Reports');
         $response->assertSee('Mood Report Overview');
         $response->assertSee('Mood Trends');
         $response->assertSee('Emotional Statistics');
@@ -46,9 +47,12 @@ class ReportingSystemTest extends TestCase
 
     public function test_admin_can_view_reports_with_user_and_content_statistics(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $userA = User::factory()->create();
-        $userB = User::factory()->create();
+        /** @var User $admin */
+        $admin = User::factory()->createOne(['role' => 'admin']);
+        /** @var User $userA */
+        $userA = User::factory()->createOne();
+        /** @var User $userB */
+        $userB = User::factory()->createOne();
 
         MoodLog::create([
             'user_id' => $userA->id,
@@ -103,7 +107,8 @@ class ReportingSystemTest extends TestCase
 
     public function test_non_admin_cannot_access_admin_reports(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        /** @var User $user */
+        $user = User::factory()->createOne(['role' => 'user']);
 
         $this->actingAs($user)
             ->get('/admin/reports')
@@ -120,17 +125,18 @@ class ReportingSystemTest extends TestCase
 
     public function test_guest_cannot_access_reports_pages(): void
     {
-        $this->get('/reports/student')->assertRedirect('/login');
+        $this->get('/reports/personal')->assertRedirect('/login');
         $this->get('/admin/reports')->assertRedirect('/login');
-        $this->get('/reports/student/export/csv')->assertRedirect('/login');
-        $this->get('/reports/student/export/pdf')->assertRedirect('/login');
+        $this->get('/reports/personal/export/csv')->assertRedirect('/login');
+        $this->get('/reports/personal/export/pdf')->assertRedirect('/login');
         $this->get('/admin/reports/export/csv')->assertRedirect('/login');
         $this->get('/admin/reports/export/pdf')->assertRedirect('/login');
     }
 
-    public function test_student_can_export_reports_as_csv_and_pdf(): void
+    public function test_user_can_export_reports_as_csv_and_pdf(): void
     {
-        $user = User::factory()->create();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         MoodLog::create([
             'user_id' => $user->id,
@@ -139,20 +145,22 @@ class ReportingSystemTest extends TestCase
             'logged_at' => now(),
         ]);
 
-        $csv = $this->actingAs($user)->get('/reports/student/export/csv');
+        $csv = $this->actingAs($user)->get('/reports/personal/export/csv');
         $csv->assertOk();
         $csv->assertHeader('content-type', 'text/csv; charset=UTF-8');
         $this->assertStringContainsString('Total Mood Entries', $csv->streamedContent());
 
-        $pdf = $this->actingAs($user)->get('/reports/student/export/pdf');
+        $pdf = $this->actingAs($user)->get('/reports/personal/export/pdf');
         $pdf->assertOk();
         $pdf->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_admin_can_export_reports_as_csv_and_pdf(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $user = User::factory()->create();
+        /** @var User $admin */
+        $admin = User::factory()->createOne(['role' => 'admin']);
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         MoodLog::create([
             'user_id' => $user->id,

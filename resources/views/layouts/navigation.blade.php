@@ -30,7 +30,7 @@
 <x-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
     {{ __('Journal') }}
 </x-nav-link>
-<x-nav-link :href="route('reports.student')" :active="request()->routeIs('reports.*')">
+<x-nav-link :href="route('reports.personal')" :active="request()->routeIs('reports.*')">
     {{ __('Reports') }}
 </x-nav-link>
 <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
@@ -121,7 +121,7 @@
                 {{ __('Journal') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('reports.student')" :active="request()->routeIs('reports.*')">
+            <x-responsive-nav-link :href="route('reports.personal')" :active="request()->routeIs('reports.*')">
                 {{ __('Reports') }}
             </x-responsive-nav-link>
 
