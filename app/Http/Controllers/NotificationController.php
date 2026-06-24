@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Notification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -33,6 +34,7 @@ class NotificationController extends Controller
 
         if (! $notification->read_at) {
             $notification->update(['read_at' => now()]);
+            Cache::forget('notifications:unread-count:user:'.$request->user()->id);
         }
 
         return back()->with('success', 'Notification marked as read.');
@@ -44,6 +46,8 @@ class NotificationController extends Controller
             ->where('user_id', $request->user()->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        Cache::forget('notifications:unread-count:user:'.$request->user()->id);
 
         return back()->with('success', 'All notifications marked as read.');
     }

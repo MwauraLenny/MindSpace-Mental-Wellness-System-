@@ -86,6 +86,118 @@ The platform includes the following modules required by the proposal.
 4. Content moderation: `/admin/moderation`
 5. Analytics page: `/admin/analytics`
 
+## Non-Functional Requirements Coverage
+
+### 1) Secure
+
+- Password hashing enabled through Laravel hashing (`User` cast + registration hashing).
+- Authentication lockout/rate limiting in login request flow.
+- Admin/user authorization via middleware and policies.
+- Security response headers added with `SecurityHeadersMiddleware`.
+
+### 2) Private
+
+- Profile privacy setting for anonymous sharing preference.
+- Anonymous posting can be enforced from server-side controller logic.
+- Emotional note content (journal and mood notes) encrypted at rest.
+
+### 3) Easy to use
+
+- Clear top navigation for user/admin tasks and notification badges.
+- Personal dashboard, reports, analytics, and recommendations pages are directly accessible.
+
+### 4) Reliable
+
+- Account suspension enforcement with automatic sign-out and session invalidation.
+- Input validation across controllers/forms.
+- Consistent authorization checks for protected profile actions.
+
+### 5) Fast
+
+- Notification sync is throttled with cache to avoid repeating expensive work every request.
+- Unread notification counts are cached and shared to views.
+
+### 6) Scalable
+
+- Database-backed sessions and dedicated `user_sessions` tracking table.
+- Query filtering/index-aware route structure for high-read pages (mood, journals, routines, reports).
+
+### 7) Available
+
+- Uses Laravel middleware/session architecture with graceful logout/token regeneration flows.
+- Session persistence supports database storage for multi-instance deployment.
+
+### 8) Maintainable
+
+- Separation of concerns across controllers, middleware, services, models, and policies.
+- Reusable middleware for security headers, suspension checks, notification sync, and session tracking.
+
+### 9) Cross-browser compatible
+
+- Standards-compliant HTML meta headers including viewport and compatibility metadata.
+- Blade/Tailwind UI patterns render consistently across modern browsers.
+
+### 10) Responsive on mobile, tablet, and desktop
+
+- Responsive navigation (desktop and mobile menu variants).
+- Layouts and components use Tailwind responsive classes (`sm`, `md`, `lg`) across key pages.
+
+## Reliability, Availability, and Observability
+
+### Health and Readiness Endpoints
+
+- Liveness endpoint: `GET /health`
+- Readiness endpoint: `GET /ready`
+
+Readiness validates:
+
+- Database connectivity
+- Cache write/read capability
+- Queue connection resolution
+- Session table availability
+
+Recommended monitor setup:
+
+- Uptime monitor targets `GET /health` every 60 seconds.
+- Orchestration/readiness probes target `GET /ready`.
+- Alert when `/ready` returns HTTP 503 for 3+ consecutive checks.
+
+### Request Metrics and Performance Signals
+
+- Middleware: `app/Http/Middleware/RequestMetricsMiddleware.php`
+- Adds response headers:
+	- `Server-Timing` with request duration
+	- `X-Response-Time` in milliseconds
+- Logs slow requests over `OBSERVABILITY_SLOW_REQUEST_MS` (default: `1000`).
+- Tracks per-minute request counters in cache.
+
+Environment variables:
+
+- `OBSERVABILITY_SLOW_REQUEST_MS=1000`
+- `HEALTH_CACHE_TTL_SECONDS=5`
+
+## Cross-Browser and Responsive E2E Testing
+
+Playwright configuration runs a compatibility matrix for:
+
+- Desktop Chrome
+- Desktop Firefox
+- Desktop Safari (WebKit)
+- Mobile Chrome (Pixel 5)
+- Tablet Safari (iPad Pro)
+
+Files:
+
+- `playwright.config.js`
+- `tests/e2e/smoke.spec.js`
+
+Run steps:
+
+1. Install dependencies: `npm install`
+2. Install Playwright browsers: `npx playwright install --with-deps`
+3. Start app server (example): `php artisan serve`
+4. Run tests: `npm run e2e`
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

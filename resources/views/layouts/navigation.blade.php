@@ -1,8 +1,6 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     @php
-        $unreadNotificationCount = Auth::check()
-            ? \App\Models\Notification::query()->where('user_id', Auth::id())->whereNull('read_at')->count()
-            : 0;
+        $unreadNotificationCount = (int) ($unreadNotificationCount ?? 0);
     @endphp
 
     <!-- Primary Navigation Menu -->
