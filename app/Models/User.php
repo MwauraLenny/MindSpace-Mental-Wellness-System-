@@ -21,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'anonymous_sharing',
         'suspended_at',
         'suspension_reason',
@@ -50,13 +51,38 @@ class User extends Authenticatable
         return $this->hasMany(Journal::class);
     }
 
+    public function roleRecord()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function moodEntries()
+    {
+        return $this->hasMany(MoodEntry::class);
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);
     }
 
+    public function reactions()
+    {
+        return $this->hasMany(Reaction::class);
+    }
+
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function recommendationHistory()
+    {
+        return $this->hasMany(RecommendationHistory::class);
+    }
+
+    public function userSessions()
+    {
+        return $this->hasMany(UserSession::class);
     }
 }

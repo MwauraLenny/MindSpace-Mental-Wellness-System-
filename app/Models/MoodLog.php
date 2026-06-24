@@ -101,4 +101,9 @@ class MoodLog extends Model
     {
         return $this->hasMany(Journal::class, 'mood_log_id');
     }
+
+    public function recommendationHistory()
+    {
+        return $this->hasMany(RecommendationHistory::class, 'mood_log_id');
+    }
 }

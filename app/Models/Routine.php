@@ -42,6 +42,11 @@ class Routine extends Model
         return $this->hasMany(RoutineReaction::class);
     }
 
+    public function genericReactions()
+    {
+        return $this->morphMany(Reaction::class, 'reactable');
+    }
+
     public function comments()
     {
         return $this->morphMany(Comment::class, 'commentable')

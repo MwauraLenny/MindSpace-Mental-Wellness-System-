@@ -33,6 +33,11 @@ class Comment extends Model
         return $this->morphTo();
     }
 
+    public function reactions()
+    {
+        return $this->morphMany(Reaction::class, 'reactable');
+    }
+
     public function parent()
     {
         return $this->belongsTo(self::class, 'parent_id');
