@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\UserSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,6 +48,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()) {
+            UserSession::trackActivity(
+                (int) $request->user()->id,
+                $request->session()->getId(),
+                $request->ip(),
+                $request->userAgent(),
+                ['guard' => 'web']
+            );
+        }
+
         $redirectRoute = $request->user()?->role === 'admin'
             ? 'admin.dashboard'
             : 'dashboard';
@@ -59,6 +70,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if ($request->hasSession()) {
+            UserSession::endBySessionId($request->session()->getId());
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

@@ -47,6 +47,22 @@
             @endif
         </div>
 
+        <div>
+            <label for="anonymous_sharing" class="inline-flex items-center gap-2">
+                <input
+                    id="anonymous_sharing"
+                    type="checkbox"
+                    name="anonymous_sharing"
+                    value="1"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    @checked(old('anonymous_sharing', $user->anonymous_sharing))
+                >
+                <span class="text-sm text-gray-700">{{ __('Allow anonymous community posting by default') }}</span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">{{ __('When disabled, your routine and comment posts will always show your display name.') }}</p>
+            <x-input-error class="mt-2" :messages="$errors->get('anonymous_sharing')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

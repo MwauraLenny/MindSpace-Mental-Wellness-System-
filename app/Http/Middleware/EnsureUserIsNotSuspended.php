@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserSession;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +16,10 @@ class EnsureUserIsNotSuspended
 
         if (! $user || ! $user->suspended_at) {
             return $next($request);
+        }
+
+        if ($request->hasSession()) {
+            UserSession::endBySessionId($request->session()->getId());
         }
 
         Auth::logout();

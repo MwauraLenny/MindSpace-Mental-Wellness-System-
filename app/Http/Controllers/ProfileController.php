@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\User;
+use App\Models\UserSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +47,10 @@ class ProfileController extends Controller
     {
         $this->authorize('update', $request->user());
 
-        $request->user()->fill($request->validated());
+        $validated = $request->validated();
+        $validated['anonymous_sharing'] = $request->boolean('anonymous_sharing');
+
+        $request->user()->fill($validated);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
@@ -69,6 +73,10 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($request->hasSession()) {
+            UserSession::endBySessionId($request->session()->getId());
+        }
 
         Auth::logout();
 

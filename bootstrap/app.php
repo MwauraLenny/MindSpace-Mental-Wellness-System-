@@ -16,10 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'notifications.sync' => \App\Http\Middleware\SyncNotificationsMiddleware::class,
             'suspended' => \App\Http\Middleware\EnsureUserIsNotSuspended::class,
+            'sessions.track' => \App\Http\Middleware\TrackUserSessionActivity::class,
         ]);
 
         $middleware->appendToGroup('web', \App\Http\Middleware\SyncNotificationsMiddleware::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsNotSuspended::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\TrackUserSessionActivity::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

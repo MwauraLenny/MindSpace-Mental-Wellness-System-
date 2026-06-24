@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class Journal extends Model
 {
@@ -32,5 +34,30 @@ class Journal extends Model
     public function moodLog()
     {
         return $this->belongsTo(MoodLog::class, 'mood_log_id');
+    }
+
+    public function getBodyAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
+            // Keep legacy plaintext entries readable while new writes stay encrypted.
+            return $value;
+        }
+    }
+
+    public function setBodyAttribute(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['body'] = $value;
+
+            return;
+        }
+
+        $this->attributes['body'] = Crypt::encryptString((string) $value);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\Journal;
 use App\Models\MoodLog;
 use App\Models\Routine;
+use App\Models\UserSession;
 use App\Services\NotificationService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -98,6 +99,11 @@ class UserManagementController extends Controller
             'suspension_reason' => $validated['reason'] ?? null,
         ]);
 
+        UserSession::endAllForUser((int) $user->id);
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->delete();
+
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);
         $notificationService->createForUser(
@@ -145,6 +151,11 @@ class UserManagementController extends Controller
         if ($request->user()?->id === $user->id) {
             return back()->with('error', 'You cannot delete your own account.');
         }
+
+        UserSession::endAllForUser((int) $user->id);
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->delete();
 
         User::query()->whereKey($user->id)->delete();
 

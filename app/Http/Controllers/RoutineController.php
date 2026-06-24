@@ -245,7 +245,7 @@ class RoutineController extends Controller
             'body' => $request->body,
             'mood_tag' => $request->mood_tag,
             'routine_category_id' => $request->routine_category_id,
-            'is_anonymous' => $request->has('is_anonymous'),
+            'is_anonymous' => $this->resolveAnonymousSelection($request),
         ]);
 
         /** @var NotificationService $notificationService */
@@ -400,7 +400,7 @@ class RoutineController extends Controller
             'commentable_id' => $routine->id,
             'parent_id' => $parentId,
             'body' => $validated['body'],
-            'is_anonymous' => $request->boolean('is_anonymous'),
+            'is_anonymous' => $this->resolveAnonymousSelection($request),
             'status' => 'active',
         ]);
 
@@ -568,5 +568,16 @@ class RoutineController extends Controller
             'copingStrategies' => $copingStrategies,
             'routines' => $recommendedRoutines,
         ];
+    }
+
+    private function resolveAnonymousSelection(Request $request): bool
+    {
+        $currentUser = $request->user();
+
+        if (! $currentUser) {
+            return false;
+        }
+
+        return $currentUser->anonymous_sharing && $request->boolean('is_anonymous');
     }
 }

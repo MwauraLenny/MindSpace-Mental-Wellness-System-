@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 use InvalidArgumentException;
 
 class MoodLog extends Model
@@ -105,5 +107,30 @@ class MoodLog extends Model
     public function recommendationHistory()
     {
         return $this->hasMany(RecommendationHistory::class, 'mood_log_id');
+    }
+
+    public function getJournalNoteAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
+            // Keep legacy plaintext entries readable while new writes stay encrypted.
+            return $value;
+        }
+    }
+
+    public function setJournalNoteAttribute(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['journal_note'] = $value;
+
+            return;
+        }
+
+        $this->attributes['journal_note'] = Crypt::encryptString((string) $value);
     }
 }
