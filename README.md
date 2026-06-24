@@ -7,6 +7,58 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## MindSpace System Modules
+
+The platform includes the following modules required by the proposal.
+
+### 1) Authentication Module
+
+- Routes: `routes/auth.php`
+- Controllers: `app/Http/Controllers/Auth/*`
+- Features: registration, login, admin login, password reset, email verification, logout
+
+### 2) Mood Tracking Module
+
+- Routes: `routes/web.php` (`/mood`, `/mood/dashboard`, exports)
+- Controller: `app/Http/Controllers/MoodLogController.php`
+- Views: `resources/views/mood/*`
+- Data models/tables: `MoodLog`, `mood_logs`, `MoodEntry`, `mood_entries`
+
+### 3) Journal Management Module
+
+- Routes: `routes/web.php` (`/journals*`)
+- Controller: `app/Http/Controllers/JournalController.php`
+- Views: `resources/views/journals/*`
+- Data model/table: `Journal`, `journals`
+
+### 4) Community Feed Module
+
+- Routes: `routes/web.php` (`/community`, `/routines*`)
+- Controller: `app/Http/Controllers/RoutineController.php`
+- Views: `resources/views/routines/*`
+- Data models/tables: `Routine`, `Comment`, `SavedRoutine`, `RoutineLike`, `RoutineReaction`
+
+### 5) Recommendation Module
+
+- Recommendation logic: `app/Http/Controllers/RoutineController.php` (`buildRecommendations`)
+- Recommendation tracking: `RecommendationHistory` model and `recommendation_history` table
+- Personal analytics visibility: `app/Http/Controllers/AnalyticsController.php`
+
+### 6) Notification Module
+
+- Routes: `routes/web.php` (`/notifications*`)
+- Controller: `app/Http/Controllers/NotificationController.php`
+- Service: `app/Services/NotificationService.php`
+- Views: `resources/views/notifications/*`
+- Data model/table: `Notification`, `notifications`
+
+### 7) Administrative Management Module
+
+- Admin routes: `routes/web.php` (`/admin/*`)
+- Controllers: `app/Http/Controllers/Admin/UserManagementController.php`, `app/Http/Controllers/ReportController.php`, `app/Http/Controllers/DashboardController.php`, `app/Http/Controllers/AnalyticsController.php`
+- Views: `resources/views/admin/*`
+- Features: user management, suspend/reactivate/delete users, moderation queue, report management, platform analytics, activity history
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
