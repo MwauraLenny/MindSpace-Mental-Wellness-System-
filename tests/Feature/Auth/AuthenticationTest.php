@@ -10,6 +10,13 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_login_screen_can_be_rendered(): void
+    {
+        $response = $this->get('/admin/login');
+
+        $response->assertStatus(200);
+    }
+
     public function test_login_screen_can_be_rendered(): void
     {
         $response = $this->get('/login');
@@ -41,6 +48,40 @@ class AuthenticationTest extends TestCase
         $response = $this->post('/login', [
             'email' => $admin->email,
             'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('admin.dashboard', absolute: false));
+    }
+
+    public function test_non_admin_users_cannot_login_from_admin_login_page(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->createOne([
+            'role' => 'user',
+        ]);
+
+        $response = $this->post('/admin/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'admin_login' => true,
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('email');
+    }
+
+    public function test_admin_users_can_login_from_admin_login_page(): void
+    {
+        /** @var User $admin */
+        $admin = User::factory()->createOne([
+            'role' => 'admin',
+        ]);
+
+        $response = $this->post('/admin/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+            'admin_login' => true,
         ]);
 
         $this->assertAuthenticated();
