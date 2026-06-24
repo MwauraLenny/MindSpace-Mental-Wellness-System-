@@ -1,8 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Log Your Mood
-        </h2>
+        <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Log Your Mood
+            </h2>
+
+            <a
+                href="{{ route('mood.dashboard') }}"
+                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700"
+            >
+                Mood Dashboard
+            </a>
+        </div>
     </x-slot>
 
     <div class="py-12">
@@ -32,20 +41,26 @@
                 <form method="POST" action="{{ route('mood.store') }}">
                     @csrf
 
-                    {{-- Emoji scale --}}
+                    {{-- Emoji categories --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Select your mood</label>
-                        <div class="flex gap-4">
-                            @foreach([1 => '😢', 2 => '😟', 3 => '😐', 4 => '🙂', 5 => '😄'] as $value => $emoji)
-                                <label class="flex flex-col items-center cursor-pointer">
-                                    <input type="radio" name="mood_value" value="{{ $value }}"
-                                        class="mb-1" required>
-                                    <span class="text-3xl">{{ $emoji }}</span>
-                                    <span class="text-xs text-gray-500">{{ $value }}</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            @foreach($moodCategories as $key => $mood)
+                                <label class="rounded-lg border border-gray-200 px-3 py-3 flex items-center gap-3 cursor-pointer hover:border-indigo-400 transition">
+                                    <input
+                                        type="radio"
+                                        name="mood_category"
+                                        value="{{ $key }}"
+                                        class="text-indigo-600"
+                                        @checked(old('mood_category') === $key)
+                                        required
+                                    >
+                                    <span class="text-2xl">{{ $mood['emoji'] }}</span>
+                                    <span class="text-sm font-medium text-gray-700">{{ $mood['label'] }}</span>
                                 </label>
                             @endforeach
                         </div>
-                        @error('mood_value')
+                        @error('mood_category')
                             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
@@ -73,12 +88,13 @@
                 @forelse($logs as $log)
                     <div class="flex items-center justify-between border-b py-2">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">
-                                {{ [1=>'😢',2=>'😟',3=>'😐',4=>'🙂',5=>'😄'][$log->mood_value] }}
-                            </span>
-                            <span class="text-sm text-gray-600">{{ $log->journal_note ?? 'No note' }}</span>
+                            <span class="text-2xl">{{ $log->mood_emoji }}</span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700">{{ $log->mood_label }} <span class="text-xs text-gray-400">(Score {{ $log->mood_value }})</span></p>
+                                <span class="text-sm text-gray-600">{{ $log->journal_note ?? 'No note' }}</span>
+                            </div>
                         </div>
-                        <span class="text-xs text-gray-400">{{ $log->logged_at }}</span>
+                        <span class="text-xs text-gray-400">{{ optional($log->logged_at)->format('M d, Y h:i A') }}</span>
                     </div>
                 @empty
                     <p class="text-gray-500 text-sm">No mood entries yet. Log your first mood above!</p>

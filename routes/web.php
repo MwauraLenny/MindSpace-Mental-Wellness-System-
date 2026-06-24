@@ -34,6 +34,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/mood', [App\Http\Controllers\MoodLogController::class, 'index'])->name('mood.index');
     Route::post('/mood', [App\Http\Controllers\MoodLogController::class, 'store'])->name('mood.store');
+    Route::get('/mood/dashboard', [App\Http\Controllers\MoodLogController::class, 'dashboard'])->name('mood.dashboard');
+    Route::get('/mood/export/csv', [App\Http\Controllers\MoodLogController::class, 'exportCsv'])->name('mood.export.csv');
+    Route::get('/mood/export/pdf', [App\Http\Controllers\MoodLogController::class, 'exportPdf'])->name('mood.export.pdf');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/routines', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.index');

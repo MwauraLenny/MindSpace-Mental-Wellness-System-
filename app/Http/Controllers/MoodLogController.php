@@ -3,13 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\MoodLog;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MoodLogController extends Controller
 {
     public function index()
     {
+        $moodCategories = MoodLog::categories();
+
         $logs = MoodLog::where('user_id', Auth::id())
                     ->orderBy('logged_at', 'desc')
                     ->get();
@@ -19,22 +26,207 @@ class MoodLogController extends Controller
         $moodImproved = $latestMood && $previousMood
             && $latestMood->mood_value > $previousMood->mood_value;
 
-        return view('mood.index', compact('logs', 'latestMood', 'moodImproved'));
+        return view('mood.index', compact('logs', 'latestMood', 'moodImproved', 'moodCategories'));
+    }
+
+    public function dashboard(Request $request)
+    {
+        $period = $this->resolvePeriod($request);
+
+        $logs = $this->filteredLogsQuery($period)
+            ->orderBy('logged_at', 'asc')
+            ->get();
+
+        $categories = MoodLog::categories();
+        $totalEntries = $logs->count();
+        $averageScore = $totalEntries > 0 ? round($logs->avg('mood_value'), 2) : 0;
+
+        $moodCounts = collect(array_keys($categories))
+            ->mapWithKeys(fn ($key) => [$key => $logs->where('mood_category_key', $key)->count()]);
+
+        $mostFrequentMoodKey = $moodCounts->sortDesc()->keys()->first();
+        $mostFrequentMood = $mostFrequentMoodKey ? $categories[$mostFrequentMoodKey]['label'] : 'No entries yet';
+
+        $positiveRate = $totalEntries > 0
+            ? round(($logs->where('mood_value', '>=', 4)->count() / $totalEntries) * 100, 1)
+            : 0;
+
+        $dailyAverage = $logs
+            ->groupBy(fn ($log) => optional($log->logged_at)->format('Y-m-d'))
+            ->map(fn ($dayLogs) => round($dayLogs->avg('mood_value'), 2))
+            ->filter(fn ($value, $key) => $key !== null)
+            ->sortKeys();
+
+        $dayOfWeekPattern = $logs
+            ->groupBy(fn ($log) => optional($log->logged_at)->format('l'))
+            ->map(fn ($group) => round($group->avg('mood_value'), 2));
+
+        $timeOfDayPattern = $logs->groupBy(function ($log) {
+            $hour = optional($log->logged_at)->hour;
+
+            if ($hour === null) {
+                return 'Unknown';
+            }
+
+            if ($hour >= 5 && $hour < 12) {
+                return 'Morning';
+            }
+
+            if ($hour >= 12 && $hour < 17) {
+                return 'Afternoon';
+            }
+
+            if ($hour >= 17 && $hour < 22) {
+                return 'Evening';
+            }
+
+            return 'Night';
+        })->map(fn ($group) => round($group->avg('mood_value'), 2));
+
+        $recentWindow = $logs->sortByDesc('logged_at')->take(14)->sortBy('logged_at')->values();
+        $currentWindowAverage = $recentWindow->take(-7)->avg('mood_value');
+        $previousWindowAverage = $recentWindow->take(7)->avg('mood_value');
+
+        $trendSummary = 'Log more moods to generate trend insights.';
+
+        if ($recentWindow->count() >= 7) {
+            if ($previousWindowAverage !== null && $currentWindowAverage !== null) {
+                if ($currentWindowAverage > $previousWindowAverage) {
+                    $trendSummary = 'Your recent emotional trend is improving compared to the prior week.';
+                } elseif ($currentWindowAverage < $previousWindowAverage) {
+                    $trendSummary = 'Your recent emotional trend has dipped. Consider routines that helped in better weeks.';
+                } else {
+                    $trendSummary = 'Your emotional trend is steady over the last two weeks.';
+                }
+            }
+        }
+
+        return view('mood.dashboard', [
+            'logs' => $logs->sortByDesc('logged_at')->values(),
+            'period' => $period,
+            'periodOptions' => [
+                'all' => 'All time',
+                '7d' => 'Last 7 days',
+                '30d' => 'Last 30 days',
+            ],
+            'totalEntries' => $totalEntries,
+            'averageScore' => $averageScore,
+            'positiveRate' => $positiveRate,
+            'mostFrequentMood' => $mostFrequentMood,
+            'trendSummary' => $trendSummary,
+            'moodCounts' => $moodCounts,
+            'dayOfWeekPattern' => $dayOfWeekPattern,
+            'timeOfDayPattern' => $timeOfDayPattern,
+            'dailyAverage' => $dailyAverage,
+            'categories' => $categories,
+            'chartDates' => $dailyAverage->keys()->values(),
+            'chartScores' => $dailyAverage->values(),
+            'chartMoodLabels' => $moodCounts->keys()->map(fn ($key) => $categories[$key]['label'])->values(),
+            'chartMoodCounts' => $moodCounts->values(),
+        ]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $period = $this->resolvePeriod($request);
+        $logs = $this->filteredLogsQuery($period)
+            ->orderBy('logged_at', 'desc')
+            ->get();
+
+        $filename = 'mood-history-'.$period.'-'.Carbon::now()->format('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($logs): void {
+            $handle = fopen('php://output', 'wb');
+
+            if ($handle === false) {
+                return;
+            }
+
+            fputcsv($handle, ['Date/Time', 'Mood Category', 'Mood Score', 'Journal Note']);
+
+            foreach ($logs as $log) {
+                fputcsv($handle, [
+                    optional($log->logged_at)->format('Y-m-d H:i:s'),
+                    $log->mood_label,
+                    $log->mood_value,
+                    $log->journal_note,
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $period = $this->resolvePeriod($request);
+        $logs = $this->filteredLogsQuery($period)
+            ->orderBy('logged_at', 'desc')
+            ->get();
+
+        $totalEntries = $logs->count();
+        $averageScore = $totalEntries > 0 ? round($logs->avg('mood_value'), 2) : 0;
+        $positiveRate = $totalEntries > 0
+            ? round(($logs->where('mood_value', '>=', 4)->count() / $totalEntries) * 100, 1)
+            : 0;
+
+        $pdf = Pdf::loadView('mood.export-pdf', [
+            'logs' => $logs,
+            'period' => $period,
+            'generatedAt' => Carbon::now(),
+            'totalEntries' => $totalEntries,
+            'averageScore' => $averageScore,
+            'positiveRate' => $positiveRate,
+        ]);
+
+        return $pdf->download('mood-report-'.$period.'-'.Carbon::now()->format('Ymd_His').'.pdf');
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'mood_value' => 'required|integer|min:1|max:5',
+            'mood_category' => 'required|string|in:'.implode(',', array_keys(MoodLog::categories())),
             'journal_note' => 'nullable|string|max:500',
         ]);
 
+        $category = $request->string('mood_category')->toString();
+
         MoodLog::create([
             'user_id' => Auth::id(),
-            'mood_value' => $request->mood_value,
+            'mood_category' => $category,
+            'mood_value' => MoodLog::scoreFromCategory($category),
             'journal_note' => $request->journal_note,
         ]);
 
         return redirect()->route('mood.index')->with('success', 'Mood logged successfully!');
+    }
+
+    private function resolvePeriod(Request $request): string
+    {
+        $period = $request->string('period')->toString();
+
+        if ($period === '') {
+            return 'all';
+        }
+
+        return in_array($period, ['all', '7d', '30d'], true) ? $period : 'all';
+    }
+
+    private function filteredLogsQuery(string $period): Builder
+    {
+        $query = MoodLog::query()
+            ->where('user_id', Auth::id());
+
+        if ($period === '7d') {
+            $query->where('logged_at', '>=', Carbon::now()->subDays(7)->startOfDay());
+        }
+
+        if ($period === '30d') {
+            $query->where('logged_at', '>=', Carbon::now()->subDays(30)->startOfDay());
+        }
+
+        return $query;
     }
 }
