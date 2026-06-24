@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
     Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role.update');
+    Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
+    Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
+    Route::get('/reports/export/pdf', [ReportController::class, 'adminExportPdf'])->name('admin.reports.export.pdf');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/mood', [App\Http\Controllers\MoodLogController::class, 'index'])->name('mood.index');
@@ -51,6 +55,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get('/reports/student', [ReportController::class, 'student'])->name('reports.student');
+    Route::get('/reports/student/export/csv', [ReportController::class, 'studentExportCsv'])->name('reports.student.export.csv');
+    Route::get('/reports/student/export/pdf', [ReportController::class, 'studentExportPdf'])->name('reports.student.export.pdf');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

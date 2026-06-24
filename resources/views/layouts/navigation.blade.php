@@ -30,6 +30,9 @@
 <x-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
     {{ __('Journal') }}
 </x-nav-link>
+<x-nav-link :href="route('reports.student')" :active="request()->routeIs('reports.*')">
+    {{ __('Reports') }}
+</x-nav-link>
 <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
     {{ __('Notifications') }}
     @if($unreadNotificationCount > 0)
@@ -41,6 +44,9 @@
                     @if (Auth::user()?->role === 'admin')
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
                             {{ __('Admin Panel') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                            {{ __('Admin Reports') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -115,6 +121,10 @@
                 {{ __('Journal') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('reports.student')" :active="request()->routeIs('reports.*')">
+                {{ __('Reports') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
                 {{ __('Notifications') }}
                 @if($unreadNotificationCount > 0)
@@ -127,6 +137,10 @@
             @if (Auth::user()?->role === 'admin')
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
                     {{ __('Admin Panel') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                    {{ __('Admin Reports') }}
                 </x-responsive-nav-link>
             @endif
         </div>

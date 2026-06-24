@@ -18,6 +18,13 @@
                         >
                             Manage User Roles
                         </a>
+
+                        <a
+                            href="{{ route('admin.reports.index') }}"
+                            class="inline-flex items-center px-4 py-2 ml-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700"
+                        >
+                            View Admin Reports
+                        </a>
                     </div>
                 </div>
             </div>
