@@ -121,6 +121,34 @@
                     </a>
                 </div>
             </div>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Activity History Preview</h3>
+                <p class="text-sm text-gray-600 mt-1">Latest platform events across mood logs, journals, and community comments.</p>
+
+                <div class="mt-4 space-y-2">
+                    @forelse($recentActivityPreview as $event)
+                        <div class="rounded border border-gray-100 px-4 py-3 text-sm flex items-center justify-between gap-3">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ $event['type'] }}</p>
+                                <p class="text-gray-600">{{ $event['summary'] }}</p>
+                            </div>
+                            <p class="text-xs text-gray-500">{{ optional($event['at'])->diffForHumans() }}</p>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-500">No recent activity to display yet.</p>
+                    @endforelse
+                </div>
+
+                <div class="mt-4">
+                    <a
+                        href="{{ route('admin.users.index') }}"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700"
+                    >
+                        Open User Management
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>

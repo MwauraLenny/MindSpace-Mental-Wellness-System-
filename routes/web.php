@@ -27,6 +27,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
     Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role.update');
+    Route::get('/users/{user}/activity', [UserManagementController::class, 'activity'])->name('admin.users.activity');
+    Route::patch('/users/{user}/suspend', [UserManagementController::class, 'suspend'])->name('admin.users.suspend');
+    Route::patch('/users/{user}/unsuspend', [UserManagementController::class, 'unsuspend'])->name('admin.users.unsuspend');
+    Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
     Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
     Route::get('/reports/export/pdf', [ReportController::class, 'adminExportPdf'])->name('admin.reports.export.pdf');

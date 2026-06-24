@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Journal;
 use App\Models\MoodLog;
 use App\Models\Notification;
 use App\Models\Report;
@@ -135,6 +136,53 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        $recentActivityPreview = collect();
+
+        MoodLog::query()
+            ->with('user')
+            ->orderByDesc('logged_at')
+            ->limit(6)
+            ->get()
+            ->each(function (MoodLog $log) use ($recentActivityPreview): void {
+                $recentActivityPreview->push([
+                    'type' => 'Mood log',
+                    'summary' => ($log->user?->name ?? 'User').' logged '.$log->mood_label,
+                    'at' => $log->logged_at,
+                ]);
+            });
+
+        Journal::query()
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(6)
+            ->get()
+            ->each(function (Journal $journal) use ($recentActivityPreview): void {
+                $recentActivityPreview->push([
+                    'type' => 'Journal',
+                    'summary' => ($journal->user?->name ?? 'User').' posted a journal entry',
+                    'at' => $journal->created_at,
+                ]);
+            });
+
+        Comment::query()
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(6)
+            ->get()
+            ->each(function (Comment $comment) use ($recentActivityPreview): void {
+                $recentActivityPreview->push([
+                    'type' => 'Comment',
+                    'summary' => ($comment->user?->name ?? 'User').' posted a community comment',
+                    'at' => $comment->created_at,
+                ]);
+            });
+
+        $recentActivityPreview = $recentActivityPreview
+            ->filter(fn (array $event) => ! empty($event['at']))
+            ->sortByDesc('at')
+            ->take(10)
+            ->values();
+
         return view('admin.dashboard', [
             'totalUsers' => $totalUsers,
             'totalRoutines' => $totalRoutines,
@@ -142,6 +190,7 @@ class DashboardController extends Controller
             'communityActivity' => $communityActivity,
             'recentCommunityItems' => $recentCommunityItems,
             'moderationQueue' => $moderationQueue,
+            'recentActivityPreview' => $recentActivityPreview,
         ]);
     }
 }

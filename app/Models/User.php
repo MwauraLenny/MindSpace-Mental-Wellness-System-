@@ -17,12 +17,14 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
     protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'role',
-    'anonymous_sharing',
-];
+        'name',
+        'email',
+        'password',
+        'role',
+        'anonymous_sharing',
+        'suspended_at',
+        'suspension_reason',
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -34,7 +36,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'suspended_at' => 'datetime',
         ];
+    }
+
+    public function getIsSuspendedAttribute(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     public function journals()
