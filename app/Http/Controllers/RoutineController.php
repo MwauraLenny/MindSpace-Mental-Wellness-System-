@@ -9,6 +9,7 @@ use App\Models\RoutineCategory;
 use App\Models\RoutineLike;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -224,7 +225,7 @@ class RoutineController extends Controller
             'is_anonymous' => 'nullable|boolean',
         ]);
 
-        Routine::create([
+        $routine = Routine::create([
             'user_id' => Auth::id(),
             'title' => $request->title,
             'body' => $request->body,
@@ -232,6 +233,20 @@ class RoutineController extends Controller
             'routine_category_id' => $request->routine_category_id,
             'is_anonymous' => $request->has('is_anonymous'),
         ]);
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+
+        $notificationService->createRoutineRecommendationNotifications($routine);
+        $notificationService->notifyAdmins(
+            'admin_notification',
+            'New routine shared',
+            'A new community routine has been shared and is available in the feed.',
+            [
+                'routine_id' => $routine->id,
+                'creator_id' => Auth::id(),
+            ]
+        );
 
         return redirect()->route('routines.index')
                 ->with('success', 'Your routine has been shared with the community!');
@@ -261,6 +276,16 @@ class RoutineController extends Controller
 
         $routine->increment('upvote_count');
 
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyRoutineInteraction(
+            $routine,
+            Auth::user(),
+            'community_interaction',
+            'Someone liked your routine',
+            'Your routine received a new like from the community.'
+        );
+
         return back()->with('success', 'Routine liked.');
     }
 
@@ -283,6 +308,16 @@ class RoutineController extends Controller
             'user_id' => Auth::id(),
         ]);
 
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyRoutineInteraction(
+            $routine,
+            Auth::user(),
+            'community_interaction',
+            'Someone saved your routine',
+            'Your routine was saved by another community member.'
+        );
+
         return back()->with('success', 'Routine saved to your collection.');
     }
 
@@ -302,6 +337,18 @@ class RoutineController extends Controller
             [
                 'reaction' => $validated['reaction'],
             ]
+        );
+
+        $reactionLabel = RoutineReaction::REACTION_META[$validated['reaction']]['label'] ?? 'reaction';
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyRoutineInteraction(
+            $routine,
+            Auth::user(),
+            'community_interaction',
+            'Someone reacted to your routine',
+            'Your routine received a new '.$reactionLabel.' reaction.'
         );
 
         return back()->with('success', 'Reaction updated.');
@@ -342,6 +389,18 @@ class RoutineController extends Controller
             'is_anonymous' => $request->boolean('is_anonymous'),
             'status' => 'active',
         ]);
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyRoutineInteraction(
+            $routine,
+            Auth::user(),
+            'community_interaction',
+            $parentId ? 'Someone replied to your routine thread' : 'Someone commented on your routine',
+            $parentId
+                ? 'Your routine discussion has a new reply.'
+                : 'Your routine received a new community comment.'
+        );
 
         return back()->with('success', $parentId ? 'Reply posted.' : 'Comment posted.');
     }

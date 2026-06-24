@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,19 @@ class UserManagementController extends Controller
         $user->update([
             'role' => $validated['role'],
         ]);
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->createForUser(
+            (int) $user->id,
+            'admin_notification',
+            'Admin updated your account',
+            'Your account role was updated to '.$validated['role'].'.',
+            [
+                'new_role' => $validated['role'],
+                'updated_by' => $request->user()?->id,
+            ]
+        );
 
         return back()->with('success', 'User role updated successfully.');
     }

@@ -1,4 +1,10 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+    @php
+        $unreadNotificationCount = Auth::check()
+            ? \App\Models\Notification::query()->where('user_id', Auth::id())->whereNull('read_at')->count()
+            : 0;
+    @endphp
+
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -23,6 +29,14 @@
 </x-nav-link>
 <x-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
     {{ __('Journal') }}
+</x-nav-link>
+<x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+    {{ __('Notifications') }}
+    @if($unreadNotificationCount > 0)
+        <span class="ml-1 inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-red-100 text-red-700 text-xs px-1.5">
+            {{ $unreadNotificationCount }}
+        </span>
+    @endif
 </x-nav-link>
                     @if (Auth::user()?->role === 'admin')
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
@@ -99,6 +113,15 @@
 
             <x-responsive-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
                 {{ __('Journal') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                {{ __('Notifications') }}
+                @if($unreadNotificationCount > 0)
+                    <span class="ml-1 inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-red-100 text-red-700 text-xs px-1.5">
+                        {{ $unreadNotificationCount }}
+                    </span>
+                @endif
             </x-responsive-nav-link>
 
             @if (Auth::user()?->role === 'admin')

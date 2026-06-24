@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,18 @@ class RegisteredUserController extends Controller
             'role' => 'user',
             'anonymous_sharing' => $request->boolean('anonymous_sharing'),
         ]);
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyAdmins(
+            'admin_notification',
+            'New user registered',
+            'A new user account was created and may need moderation review.',
+            [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+            ]
+        );
 
         event(new Registered($user));
 

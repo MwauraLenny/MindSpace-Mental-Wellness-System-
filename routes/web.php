@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\JournalController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/journals', [JournalController::class, 'index'])->name('journals.index');
