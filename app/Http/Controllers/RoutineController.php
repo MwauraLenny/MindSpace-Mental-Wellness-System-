@@ -107,21 +107,35 @@ class RoutineController extends Controller
         return $this->feed($request);
     }
 
+    public function saved(Request $request)
+    {
+        $request->merge(['view' => 'saved']);
+
+        return $this->feed($request);
+    }
+
+    public function recommendations(Request $request)
+    {
+        $request->merge(['view' => 'recommendations']);
+
+        return $this->feed($request);
+    }
+
     public function feed(Request $request)
     {
-        $latestLog = MoodLog::where('user_id', Auth::id())
+        $latestLog = MoodLog::query()->where('user_id', Auth::id())
                         ->orderBy('logged_at', 'desc')
                         ->first();
 
         $moodFilter = $latestLog ? $latestLog->mood_value : null;
         $view = $request->string('view')->toString();
-        $view = in_array($view, ['community', 'saved', 'mine'], true) ? $view : 'community';
+        $view = in_array($view, ['community', 'saved', 'mine', 'recommendations'], true) ? $view : 'community';
         $moodScope = $request->string('mood_scope')->toString();
         $moodScope = in_array($moodScope, ['all', 'match'], true) ? $moodScope : 'all';
 
         $this->ensureDefaultCategories();
 
-        $categories = RoutineCategory::where('is_active', true)
+        $categories = RoutineCategory::query()->where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -140,7 +154,7 @@ class RoutineController extends Controller
                     ->latest(),
             ])
             ->where('status', 'active')
-            ->when($view === 'community' && $moodScope === 'match' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
+            ->when(in_array($view, ['community', 'recommendations'], true) && $moodScope === 'match' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
             ->when($view === 'mine', fn ($q) => $q->where('user_id', Auth::id()))
             ->when($view === 'saved', fn ($q) => $q->whereHas('saves', fn ($sub) => $sub->where('user_id', Auth::id())))
             ->when($selectedCategory > 0, fn ($q) => $q->where('routine_category_id', $selectedCategory))
@@ -149,15 +163,15 @@ class RoutineController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $likedRoutineIds = RoutineLike::where('user_id', Auth::id())
+        $likedRoutineIds = RoutineLike::query()->where('user_id', Auth::id())
             ->pluck('routine_id')
             ->flip();
 
-        $savedRoutineIds = SavedRoutine::where('user_id', Auth::id())
+        $savedRoutineIds = SavedRoutine::query()->where('user_id', Auth::id())
             ->pluck('routine_id')
             ->flip();
 
-        $myReactions = RoutineReaction::where('user_id', Auth::id())
+        $myReactions = RoutineReaction::query()->where('user_id', Auth::id())
             ->get()
             ->keyBy('routine_id');
 
@@ -203,11 +217,11 @@ class RoutineController extends Controller
     {
         $this->ensureDefaultCategories();
 
-        $latestLog = MoodLog::where('user_id', Auth::id())
+        $latestLog = MoodLog::query()->where('user_id', Auth::id())
                         ->orderBy('logged_at', 'desc')
                         ->first();
 
-        $categories = RoutineCategory::where('is_active', true)
+        $categories = RoutineCategory::query()->where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -253,16 +267,16 @@ class RoutineController extends Controller
     }
 
     // Upvote a routine
-    public function upvote($id)
+    public function upvote(int $id)
     {
         $routine = Routine::findOrFail($id);
 
-        $existing = RoutineLike::where('routine_id', $routine->id)
+        $existing = RoutineLike::query()->where('routine_id', $routine->id)
             ->where('user_id', Auth::id())
             ->first();
 
         if ($existing) {
-            $existing->delete();
+            RoutineLike::query()->whereKey($existing->id)->delete();
             $routine->upvote_count = max(0, $routine->upvote_count - 1);
             $routine->save();
 
@@ -289,16 +303,16 @@ class RoutineController extends Controller
         return back()->with('success', 'Routine liked.');
     }
 
-    public function save($id)
+    public function save(int $id)
     {
         $routine = Routine::findOrFail($id);
 
-        $existing = SavedRoutine::where('routine_id', $routine->id)
+        $existing = SavedRoutine::query()->where('routine_id', $routine->id)
             ->where('user_id', Auth::id())
             ->first();
 
         if ($existing) {
-            $existing->delete();
+            SavedRoutine::query()->whereKey($existing->id)->delete();
 
             return back()->with('success', 'Routine removed from saved list.');
         }
@@ -321,7 +335,7 @@ class RoutineController extends Controller
         return back()->with('success', 'Routine saved to your collection.');
     }
 
-    public function react(Request $request, $id)
+    public function react(Request $request, int $id)
     {
         $routine = Routine::findOrFail($id);
 
@@ -354,7 +368,7 @@ class RoutineController extends Controller
         return back()->with('success', 'Reaction updated.');
     }
 
-    public function comment(Request $request, $id)
+    public function comment(Request $request, int $id)
     {
         $routine = Routine::findOrFail($id);
 
@@ -367,7 +381,7 @@ class RoutineController extends Controller
         $parentId = $validated['parent_id'] ?? null;
 
         if ($parentId !== null) {
-            $parentComment = Comment::where('id', $parentId)
+            $parentComment = Comment::query()->where('id', $parentId)
                 ->where('commentable_type', Routine::class)
                 ->where('commentable_id', $routine->id)
                 ->whereNull('parent_id')
@@ -405,11 +419,11 @@ class RoutineController extends Controller
         return back()->with('success', $parentId ? 'Reply posted.' : 'Comment posted.');
     }
 
-    public function destroyComment($id, $commentId)
+    public function destroyComment(int $id, int $commentId)
     {
         $routine = Routine::findOrFail($id);
 
-        $comment = Comment::where('id', $commentId)
+        $comment = Comment::query()->where('id', $commentId)
             ->where('commentable_type', Routine::class)
             ->where('commentable_id', $routine->id)
             ->firstOrFail();
@@ -418,7 +432,7 @@ class RoutineController extends Controller
             abort(403, 'You can only delete your own comments.');
         }
 
-        $comment->delete();
+        Comment::query()->whereKey($comment->id)->delete();
 
         return back()->with('success', 'Comment deleted.');
     }

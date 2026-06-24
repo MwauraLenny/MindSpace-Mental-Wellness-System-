@@ -34,6 +34,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::patch('/users/{user}/unsuspend', [UserManagementController::class, 'unsuspend'])->name('admin.users.unsuspend');
     Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
+    Route::get('/moderation', [ReportController::class, 'admin'])->name('admin.moderation.index');
     Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
     Route::get('/reports/export/pdf', [ReportController::class, 'adminExportPdf'])->name('admin.reports.export.pdf');
     Route::patch('/reports/{report}/moderate', [ReportController::class, 'moderate'])->name('admin.reports.moderate');
@@ -50,7 +51,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/community', [App\Http\Controllers\RoutineController::class, 'feed'])->name('community.feed');
     Route::get('/routines', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.index');
-    Route::get('/routines/saved', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.saved');
+    Route::get('/routines/saved', [App\Http\Controllers\RoutineController::class, 'saved'])->name('routines.saved');
+    Route::get('/recommendations', [App\Http\Controllers\RoutineController::class, 'recommendations'])->name('routines.recommendations');
     Route::get('/routines/create', [App\Http\Controllers\RoutineController::class, 'create'])->name('routines.create');
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');

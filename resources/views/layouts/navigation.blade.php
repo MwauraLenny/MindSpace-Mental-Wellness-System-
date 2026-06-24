@@ -27,6 +27,9 @@
 <x-nav-link :href="route('community.feed')" :active="request()->routeIs('community.*', 'routines.*')">
     {{ __('Community') }}
 </x-nav-link>
+<x-nav-link :href="route('routines.recommendations')" :active="request()->routeIs('routines.recommendations')">
+    {{ __('Recommendations') }}
+</x-nav-link>
 <x-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
     {{ __('Journal') }}
 </x-nav-link>
@@ -50,6 +53,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                             {{ __('Admin Reports') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.moderation.index')" :active="request()->routeIs('admin.moderation.*')">
+                            {{ __('Moderation') }}
                         </x-nav-link>
                         <x-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
                             {{ __('Admin Analytics') }}
@@ -123,6 +129,10 @@
                 {{ __('Community') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('routines.recommendations')" :active="request()->routeIs('routines.recommendations')">
+                {{ __('Recommendations') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">
                 {{ __('Journal') }}
             </x-responsive-nav-link>
@@ -151,6 +161,10 @@
 
                 <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                     {{ __('Admin Reports') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('admin.moderation.index')" :active="request()->routeIs('admin.moderation.*')">
+                    {{ __('Moderation') }}
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">

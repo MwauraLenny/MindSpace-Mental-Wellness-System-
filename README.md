@@ -59,6 +59,33 @@ The platform includes the following modules required by the proposal.
 - Views: `resources/views/admin/*`
 - Features: user management, suspend/reactivate/delete users, moderation queue, report management, platform analytics, activity history
 
+## Required Pages Coverage
+
+### Public Pages
+
+1. Home page: `/` (`welcome` view)
+2. Login page: `/login`
+3. Registration page: `/register`
+
+### User Pages
+
+1. Dashboard: `/dashboard`
+2. Mood tracker page: `/mood`
+3. Journal page: `/journals`
+4. Community feed: `/community`
+5. Recommendations page: `/recommendations`
+6. Notifications page: `/notifications`
+7. Profile page: `/profile/view` and `/profile`
+8. Saved routines page: `/routines/saved`
+
+### Admin Pages
+
+1. Admin dashboard: `/admin/dashboard`
+2. User management: `/admin/users`
+3. Reports management: `/admin/reports`
+4. Content moderation: `/admin/moderation`
+5. Analytics page: `/admin/analytics`
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

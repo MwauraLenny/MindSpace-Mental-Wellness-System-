@@ -27,7 +27,7 @@
                 </div>
             @endif
 
-            @if($view === 'community')
+            @if(in_array($view, ['community', 'recommendations'], true))
                 <section class="bg-white shadow sm:rounded-lg p-5 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -135,12 +135,16 @@
                         class="px-3 py-1.5 rounded text-sm {{ $view === 'mine' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700' }}">
                         My Routines
                     </a>
+                    <a href="{{ route('routines.recommendations', ['category_id' => $selectedCategory ?: null]) }}"
+                        class="px-3 py-1.5 rounded text-sm {{ $view === 'recommendations' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700' }}">
+                        Recommendations
+                    </a>
                 </div>
 
                 <form method="GET" action="{{ route('community.feed') }}" class="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="view" value="{{ $view }}">
 
-                    @if($view === 'community')
+                    @if(in_array($view, ['community', 'recommendations'], true))
                         <label for="mood_scope" class="text-sm font-medium text-gray-700">Mood scope</label>
                         <select id="mood_scope" name="mood_scope" class="rounded border-gray-300 text-sm">
                             <option value="all" @selected($moodScope === 'all')>All shared routines</option>
