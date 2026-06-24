@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\JournalController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -43,5 +44,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/routines/create', [App\Http\Controllers\RoutineController::class, 'create'])->name('routines.create');
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get('/journals', [JournalController::class, 'index'])->name('journals.index');
+    Route::get('/journals/create', [JournalController::class, 'create'])->name('journals.create');
+    Route::post('/journals', [JournalController::class, 'store'])->name('journals.store');
+    Route::get('/journals/{id}', [JournalController::class, 'show'])->whereNumber('id')->name('journals.show');
+    Route::get('/journals/{id}/edit', [JournalController::class, 'edit'])->name('journals.edit');
+    Route::patch('/journals/{id}', [JournalController::class, 'update'])->name('journals.update');
+    Route::delete('/journals/{id}', [JournalController::class, 'destroy'])->name('journals.destroy');
 });
 require __DIR__.'/auth.php';

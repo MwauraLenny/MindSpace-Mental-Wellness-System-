@@ -96,4 +96,9 @@ class MoodLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function journals()
+    {
+        return $this->hasMany(Journal::class, 'mood_log_id');
+    }
 }
