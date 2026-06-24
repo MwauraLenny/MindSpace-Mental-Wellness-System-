@@ -30,6 +30,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
     Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
     Route::get('/reports/export/pdf', [ReportController::class, 'adminExportPdf'])->name('admin.reports.export.pdf');
+    Route::patch('/reports/{report}/moderate', [ReportController::class, 'moderate'])->name('admin.reports.moderate');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/mood', [App\Http\Controllers\MoodLogController::class, 'index'])->name('mood.index');
@@ -51,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
 });
 Route::middleware(['auth'])->group(function () {
+    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+
     Route::get('/reports/personal', [ReportController::class, 'personal'])->name('reports.personal');
     Route::get('/reports/personal/export/csv', [ReportController::class, 'personalExportCsv'])->name('reports.personal.export.csv');
     Route::get('/reports/personal/export/pdf', [ReportController::class, 'personalExportPdf'])->name('reports.personal.export.pdf');

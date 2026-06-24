@@ -197,6 +197,38 @@
                                 {{ isset($savedRoutineIds[$routine->id]) ? 'Saved' : 'Save routine' }}
                             </button>
                         </form>
+
+                        @if($routine->user_id !== Auth::id())
+                            <details class="text-sm">
+                                <summary class="cursor-pointer px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">Report routine</summary>
+                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2">
+                                    @csrf
+                                    <input type="hidden" name="reportable_type" value="routine">
+                                    <input type="hidden" name="reportable_id" value="{{ $routine->id }}">
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                                        <select name="reason" class="w-full rounded border-gray-300 text-sm" required>
+                                            <option value="spam">Spam</option>
+                                            <option value="harassment">Harassment</option>
+                                            <option value="hate_speech">Hate speech</option>
+                                            <option value="self_harm_risk">Self-harm risk</option>
+                                            <option value="misinformation">Misinformation</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Details (optional)</label>
+                                        <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-sm" placeholder="Add context for moderators"></textarea>
+                                    </div>
+
+                                    <button type="submit" class="text-xs px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">
+                                        Submit report
+                                    </button>
+                                </form>
+                            </details>
+                        @endif
                     </div>
 
                     <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -274,6 +306,27 @@
                                             Reply
                                         </button>
 
+                                        @if($comment->user_id !== Auth::id())
+                                            <details>
+                                                <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
+                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2 min-w-64">
+                                                    @csrf
+                                                    <input type="hidden" name="reportable_type" value="comment">
+                                                    <input type="hidden" name="reportable_id" value="{{ $comment->id }}">
+                                                    <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
+                                                        <option value="spam">Spam</option>
+                                                        <option value="harassment">Harassment</option>
+                                                        <option value="hate_speech">Hate speech</option>
+                                                        <option value="self_harm_risk">Self-harm risk</option>
+                                                        <option value="misinformation">Misinformation</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                    <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional details"></textarea>
+                                                    <button type="submit" class="text-xs px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700">Submit</button>
+                                                </form>
+                                            </details>
+                                        @endif
+
                                         @if($comment->replies->count() > 0)
                                             <button
                                                 type="button"
@@ -337,6 +390,27 @@
                                                         </form>
                                                     @endif
                                                 </div>
+
+                                                @if($reply->user_id !== Auth::id())
+                                                    <details class="mt-2 text-xs">
+                                                        <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
+                                                        <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2">
+                                                            @csrf
+                                                            <input type="hidden" name="reportable_type" value="comment">
+                                                            <input type="hidden" name="reportable_id" value="{{ $reply->id }}">
+                                                            <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
+                                                                <option value="spam">Spam</option>
+                                                                <option value="harassment">Harassment</option>
+                                                                <option value="hate_speech">Hate speech</option>
+                                                                <option value="self_harm_risk">Self-harm risk</option>
+                                                                <option value="misinformation">Misinformation</option>
+                                                                <option value="other">Other</option>
+                                                            </select>
+                                                            <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional details"></textarea>
+                                                            <button type="submit" class="text-xs px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700">Submit</button>
+                                                        </form>
+                                                    </details>
+                                                @endif
                                             </div>
                                         @endforeach
                                     </div>

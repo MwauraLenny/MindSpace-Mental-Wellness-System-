@@ -11,7 +11,10 @@ use App\Models\RoutineLike;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
 use App\Models\User;
+use App\Services\NotificationService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +23,74 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reportable_type' => 'required|string|in:routine,comment',
+            'reportable_id' => 'required|integer|min:1',
+            'reason' => 'required|string|in:'.implode(',', Report::REASON_OPTIONS),
+            'details' => 'nullable|string|max:1000',
+        ]);
+
+        $reportableClass = $validated['reportable_type'] === 'routine' ? Routine::class : Comment::class;
+
+        $reportable = $validated['reportable_type'] === 'routine'
+            ? Routine::query()
+                ->where('id', (int) $validated['reportable_id'])
+                ->where('status', 'active')
+                ->first()
+            : Comment::query()
+                ->where('id', (int) $validated['reportable_id'])
+                ->where('status', 'active')
+                ->first();
+
+        if (! $reportable) {
+            return back()->with('error', 'The selected content could not be reported because it is unavailable.');
+        }
+
+        $ownerId = (int) ($reportable->user_id ?? 0);
+
+        if ($ownerId === (int) Auth::id()) {
+            return back()->with('error', 'You cannot report your own content.');
+        }
+
+        $existingPendingReport = Report::query()
+            ->where('reporter_id', Auth::id())
+            ->where('reportable_type', $reportableClass)
+            ->where('reportable_id', (int) $validated['reportable_id'])
+            ->where('status', Report::STATUS_PENDING)
+            ->first();
+
+        if ($existingPendingReport) {
+            return back()->with('success', 'This content has already been reported and is awaiting moderation.');
+        }
+
+        $report = Report::create([
+            'reporter_id' => Auth::id(),
+            'reportable_type' => $reportableClass,
+            'reportable_id' => (int) $validated['reportable_id'],
+            'reason' => $validated['reason'],
+            'details' => $validated['details'] ?? null,
+            'status' => Report::STATUS_PENDING,
+        ]);
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyAdmins(
+            'admin_notification',
+            'New content report submitted',
+            'A new community content report is waiting for moderation review.',
+            [
+                'report_id' => $report->id,
+                'reportable_type' => $reportableClass,
+                'reportable_id' => (int) $validated['reportable_id'],
+                'reason' => $validated['reason'],
+            ]
+        );
+
+        return back()->with('success', 'Thanks for reporting. Our moderation team will review this content.');
+    }
+
     public function personal(): View
     {
         return view('reports.personal', $this->buildPersonalReportData(Auth::id()));
@@ -82,6 +153,62 @@ class ReportController extends Controller
     public function admin(): View
     {
         return view('reports.admin', $this->buildAdminReportData());
+    }
+
+    public function moderate(Request $request, Report $report): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:resolve,dismiss,remove',
+            'admin_note' => 'nullable|string|max:1000',
+        ]);
+
+        $wasContentRemoved = false;
+
+        if ($validated['action'] === 'remove') {
+            $wasContentRemoved = $this->removeReportedContent($report);
+        }
+
+        $report->status = $validated['action'] === 'dismiss'
+            ? Report::STATUS_DISMISSED
+            : Report::STATUS_RESOLVED;
+        $report->resolved_by = Auth::id();
+        $report->resolved_at = now();
+
+        if (! empty($validated['admin_note'])) {
+            $existingDetails = trim((string) $report->details);
+            $adminNotePrefix = 'Admin note: '.$validated['admin_note'];
+            $report->details = $existingDetails === ''
+                ? $adminNotePrefix
+                : $existingDetails."\n\n".$adminNotePrefix;
+        }
+
+        if ($validated['action'] === 'remove' && ! $wasContentRemoved) {
+            $existingDetails = trim((string) $report->details);
+            $removeNote = 'Admin note: Reported content was already unavailable when moderation was applied.';
+            $report->details = $existingDetails === ''
+                ? $removeNote
+                : $existingDetails."\n\n".$removeNote;
+        }
+
+        $report->save();
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->createForUser(
+            (int) $report->reporter_id,
+            'community_interaction',
+            'Report status updated',
+            $validated['action'] === 'dismiss'
+                ? 'A report you submitted was reviewed and dismissed.'
+                : 'A report you submitted was reviewed and resolved by moderation.',
+            [
+                'report_id' => $report->id,
+                'status' => $report->status,
+                'action' => $validated['action'],
+            ]
+        );
+
+        return back()->with('success', 'Moderation action saved successfully.');
     }
 
     public function adminExportCsv(): StreamedResponse
@@ -277,6 +404,40 @@ class ReportController extends Controller
                 ->get(),
         ];
 
+        $pendingReports = Report::query()
+            ->with(['reporter', 'reportable'])
+            ->where('status', Report::STATUS_PENDING)
+            ->orderBy('created_at')
+            ->limit(20)
+            ->get();
+
+        $recentModerationActions = Report::query()
+            ->with(['reporter', 'resolver', 'reportable'])
+            ->whereIn('status', [Report::STATUS_RESOLVED, Report::STATUS_DISMISSED])
+            ->orderByDesc('resolved_at')
+            ->limit(12)
+            ->get();
+
+        $monitoringMetrics = [
+            'reports_7d' => Report::query()
+                ->where('created_at', '>=', Carbon::now()->subDays(7)->startOfDay())
+                ->count(),
+            'resolved_7d' => Report::query()
+                ->where('status', Report::STATUS_RESOLVED)
+                ->where('resolved_at', '>=', Carbon::now()->subDays(7)->startOfDay())
+                ->count(),
+            'dismissed_7d' => Report::query()
+                ->where('status', Report::STATUS_DISMISSED)
+                ->where('resolved_at', '>=', Carbon::now()->subDays(7)->startOfDay())
+                ->count(),
+            'removed_routines_total' => Routine::query()
+                ->where('status', '!=', 'active')
+                ->count(),
+            'removed_comments_total' => Comment::query()
+                ->where('status', '!=', 'active')
+                ->count(),
+        ];
+
         return [
             'totalUsers' => $totalUsers,
             'activeUsers' => $activeUsers,
@@ -284,6 +445,39 @@ class ReportController extends Controller
             'mostLikedRoutines' => $mostLikedRoutines,
             'reportStats' => $reportStats,
             'activeWindowLabel' => 'Last 30 days',
+            'pendingReports' => $pendingReports,
+            'recentModerationActions' => $recentModerationActions,
+            'monitoringMetrics' => $monitoringMetrics,
+            'reportReasonOptions' => Report::REASON_OPTIONS,
         ];
+    }
+
+    private function removeReportedContent(Report $report): bool
+    {
+        $target = $report->reportable;
+
+        if (! $target) {
+            return false;
+        }
+
+        if ($target instanceof Routine) {
+            if ($target->status !== 'removed') {
+                $target->status = 'removed';
+                $target->save();
+            }
+
+            return true;
+        }
+
+        if ($target instanceof Comment) {
+            if ($target->status !== 'removed') {
+                $target->status = 'removed';
+                $target->save();
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

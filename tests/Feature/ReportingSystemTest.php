@@ -178,4 +178,96 @@ class ReportingSystemTest extends TestCase
         $pdf->assertOk();
         $pdf->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_user_can_report_inappropriate_routine_content(): void
+    {
+        /** @var User $reporter */
+        $reporter = User::factory()->createOne();
+        /** @var User $author */
+        $author = User::factory()->createOne();
+        /** @var User $admin */
+        $admin = User::factory()->createOne(['role' => 'admin']);
+
+        $routine = Routine::create([
+            'user_id' => $author->id,
+            'title' => 'Suspicious routine',
+            'body' => 'Suspicious body',
+            'mood_tag' => 2,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($reporter)->post('/reports', [
+            'reportable_type' => 'routine',
+            'reportable_id' => $routine->id,
+            'reason' => 'spam',
+            'details' => 'Looks like spam content.',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('reports', [
+            'reporter_id' => $reporter->id,
+            'reportable_type' => Routine::class,
+            'reportable_id' => $routine->id,
+            'reason' => 'spam',
+            'status' => 'pending',
+        ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $admin->id,
+            'title' => 'New content report submitted',
+        ]);
+    }
+
+    public function test_admin_can_remove_reported_content_and_resolve_report(): void
+    {
+        /** @var User $admin */
+        $admin = User::factory()->createOne(['role' => 'admin']);
+        /** @var User $reporter */
+        $reporter = User::factory()->createOne();
+        /** @var User $author */
+        $author = User::factory()->createOne();
+
+        $routine = Routine::create([
+            'user_id' => $author->id,
+            'title' => 'Reported routine',
+            'body' => 'Problematic routine',
+            'mood_tag' => 1,
+            'status' => 'active',
+        ]);
+
+        $reportId = DB::table('reports')->insertGetId([
+            'reporter_id' => $reporter->id,
+            'reportable_type' => Routine::class,
+            'reportable_id' => $routine->id,
+            'reason' => 'harassment',
+            'details' => 'Abusive wording.',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->patch('/admin/reports/'.$reportId.'/moderate', [
+            'action' => 'remove',
+            'admin_note' => 'Content violates community guidelines.',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $reportId,
+            'status' => 'resolved',
+            'resolved_by' => $admin->id,
+        ]);
+
+        $this->assertDatabaseHas('routines', [
+            'id' => $routine->id,
+            'status' => 'removed',
+        ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $reporter->id,
+            'title' => 'Report status updated',
+        ]);
+    }
 }

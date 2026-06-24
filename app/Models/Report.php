@@ -6,6 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Report extends Model
 {
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_RESOLVED = 'resolved';
+    public const STATUS_DISMISSED = 'dismissed';
+
+    public const REASON_OPTIONS = [
+        'spam',
+        'harassment',
+        'hate_speech',
+        'self_harm_risk',
+        'misinformation',
+        'other',
+    ];
+
     protected $fillable = [
         'reporter_id',
         'reportable_type',

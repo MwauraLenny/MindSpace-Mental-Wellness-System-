@@ -84,6 +84,109 @@
                     @endforelse
                 </div>
             </section>
+
+            <section class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Moderation Queue</h3>
+                <p class="text-sm text-gray-600 mt-1">Review reports, remove content when needed, and update report status.</p>
+
+                <div class="space-y-4 mt-4">
+                    @forelse($pendingReports as $report)
+                        <article class="rounded border border-amber-200 bg-amber-50/30 p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="font-semibold text-gray-800">{{ class_basename($report->reportable_type) }} report #{{ $report->id }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        Reported by {{ $report->reporter?->name ?? 'Unknown user' }} · {{ optional($report->created_at)->diffForHumans() }}
+                                    </p>
+                                </div>
+                                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">Pending</span>
+                            </div>
+
+                            <p class="text-sm text-gray-700 mt-2">Reason: <span class="font-medium">{{ str_replace('_', ' ', $report->reason) }}</span></p>
+                            @if($report->details)
+                                <p class="text-sm text-gray-600 mt-1">{{ $report->details }}</p>
+                            @endif
+
+                            <div class="mt-3 text-sm text-gray-700 bg-white border border-gray-100 rounded p-3">
+                                @if($report->reportable_type === App\Models\Routine::class)
+                                    <p class="font-semibold">Routine: {{ $report->reportable?->display_title ?? 'Unavailable' }}</p>
+                                    <p class="mt-1 text-gray-600">{{ \Illuminate\Support\Str::limit((string) ($report->reportable?->body), 200) }}</p>
+                                @elseif($report->reportable_type === App\Models\Comment::class)
+                                    <p class="font-semibold">Comment</p>
+                                    <p class="mt-1 text-gray-600">{{ \Illuminate\Support\Str::limit((string) ($report->reportable?->body), 200) }}</p>
+                                @else
+                                    <p class="text-gray-500">Reported content preview unavailable.</p>
+                                @endif
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2">
+                                <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="action" value="resolve">
+                                    <textarea name="admin_note" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional admin note"></textarea>
+                                    <button type="submit" class="w-full text-xs px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700">Mark Resolved</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="action" value="dismiss">
+                                    <textarea name="admin_note" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional admin note"></textarea>
+                                    <button type="submit" class="w-full text-xs px-3 py-2 rounded bg-slate-600 text-white hover:bg-slate-700">Dismiss</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="action" value="remove">
+                                    <textarea name="admin_note" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional admin note"></textarea>
+                                    <button type="submit" class="w-full text-xs px-3 py-2 rounded bg-rose-600 text-white hover:bg-rose-700">Remove Content + Resolve</button>
+                                </form>
+                            </div>
+                        </article>
+                    @empty
+                        <p class="text-sm text-gray-500">No pending reports in moderation queue.</p>
+                    @endforelse
+                </div>
+            </section>
+
+            <section class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Monitor Activity</h3>
+                <p class="text-sm text-gray-600 mt-1">Moderation throughput and safety trends.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4 text-sm">
+                    <div class="rounded border border-gray-100 px-4 py-3">Reports (7d): <span class="font-semibold">{{ $monitoringMetrics['reports_7d'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Resolved (7d): <span class="font-semibold">{{ $monitoringMetrics['resolved_7d'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Dismissed (7d): <span class="font-semibold">{{ $monitoringMetrics['dismissed_7d'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Removed Routines: <span class="font-semibold">{{ $monitoringMetrics['removed_routines_total'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Removed Comments: <span class="font-semibold">{{ $monitoringMetrics['removed_comments_total'] }}</span></div>
+                </div>
+
+                <div class="mt-5">
+                    <h4 class="font-semibold text-gray-800">Recent Moderation Actions</h4>
+                    <div class="space-y-2 mt-3">
+                        @forelse($recentModerationActions as $action)
+                            <div class="rounded border border-gray-100 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="font-medium text-gray-800">
+                                        {{ class_basename($action->reportable_type) }} report #{{ $action->id }}
+                                        · {{ ucfirst($action->status) }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        By {{ $action->resolver?->name ?? 'Unknown admin' }} · {{ optional($action->resolved_at)->diffForHumans() }}
+                                    </p>
+                                </div>
+                                <span class="text-xs px-2 py-1 rounded {{ $action->status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700' }}">
+                                    {{ ucfirst($action->status) }}
+                                </span>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500">No completed moderation actions yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 </x-app-layout>
