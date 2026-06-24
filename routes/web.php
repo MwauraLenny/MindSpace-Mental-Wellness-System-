@@ -41,9 +41,14 @@ Route::middleware(['auth'])->group(function () {
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/routines', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.index');
+    Route::get('/routines/saved', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.saved');
     Route::get('/routines/create', [App\Http\Controllers\RoutineController::class, 'create'])->name('routines.create');
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');
+    Route::post('/routines/{id}/save', [App\Http\Controllers\RoutineController::class, 'save'])->name('routines.save');
+    Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
+    Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
+    Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/journals', [JournalController::class, 'index'])->name('journals.index');

@@ -13,24 +13,39 @@ class RoutineCategorySeeder extends Seeder
 
         $categories = [
             [
-                'name' => 'Sleep Hygiene',
-                'slug' => 'sleep-hygiene',
-                'description' => 'Routines that improve sleep quality and consistency.',
+                'name' => 'Exercise Routines',
+                'slug' => 'exercise-routines',
+                'description' => 'Physical activity habits for mood regulation and energy.',
             ],
             [
-                'name' => 'Movement',
-                'slug' => 'movement',
-                'description' => 'Physical activities that support emotional regulation.',
+                'name' => 'Study Habits',
+                'slug' => 'study-habits',
+                'description' => 'Focus and planning routines that reduce study stress.',
             ],
             [
-                'name' => 'Mindfulness',
-                'slug' => 'mindfulness',
-                'description' => 'Breathing, meditation, and grounding practices.',
+                'name' => 'Meditation Routines',
+                'slug' => 'meditation-routines',
+                'description' => 'Breathing and mindfulness practices for calm.',
             ],
             [
                 'name' => 'Social Connection',
                 'slug' => 'social-connection',
                 'description' => 'Healthy connection routines with trusted people.',
+            ],
+            [
+                'name' => 'Music Recommendations',
+                'slug' => 'music-recommendations',
+                'description' => 'Playlists, artists, and listening routines that help emotions.',
+            ],
+            [
+                'name' => 'Hobbies',
+                'slug' => 'hobbies',
+                'description' => 'Creative or practical hobby routines for wellbeing.',
+            ],
+            [
+                'name' => 'Relaxation Techniques',
+                'slug' => 'relaxation-techniques',
+                'description' => 'Recovery and unwind techniques for stress relief.',
             ],
         ];
 

@@ -16,6 +16,46 @@
                 <form method="POST" action="{{ route('routines.store') }}">
                     @csrf
 
+                    {{-- Title --}}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Routine title
+                        </label>
+                        <input
+                            type="text"
+                            name="title"
+                            value="{{ old('title') }}"
+                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                            placeholder="e.g. 20-minute evening wind-down"
+                            required
+                        >
+                        @error('title')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Category --}}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Routine category
+                        </label>
+                        <select
+                            name="routine_category_id"
+                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                            required
+                        >
+                            <option value="">Select a category</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" @selected((string) old('routine_category_id') === (string) $category->id)>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('routine_category_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     {{-- Mood tag --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -40,7 +80,7 @@
                     {{-- Routine body --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                            What helped you?
+                            What helped you? (steps, links, or details)
                         </label>
                         <textarea name="body" rows="4"
                             class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
