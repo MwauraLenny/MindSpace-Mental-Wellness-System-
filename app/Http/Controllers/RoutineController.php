@@ -263,6 +263,7 @@ class RoutineController extends Controller
         $validated = $request->validate([
             'body' => 'required|string|max:500',
             'parent_id' => 'nullable|integer|exists:comments,id',
+            'is_anonymous' => 'nullable|boolean',
         ]);
 
         $parentId = $validated['parent_id'] ?? null;
@@ -287,6 +288,7 @@ class RoutineController extends Controller
             'commentable_id' => $routine->id,
             'parent_id' => $parentId,
             'body' => $validated['body'],
+            'is_anonymous' => $request->boolean('is_anonymous'),
             'status' => 'active',
         ]);
 

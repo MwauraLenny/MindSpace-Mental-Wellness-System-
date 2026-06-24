@@ -204,4 +204,73 @@ class RoutineCommentTest extends TestCase
         $this->delete('/routines/'.$routine->id.'/comments/'.$comment->id)
             ->assertRedirect('/login');
     }
+
+    public function test_user_can_comment_anonymously(): void
+    {
+        $owner = User::factory()->create();
+        $user = User::factory()->create();
+
+        $routine = Routine::create([
+            'user_id' => $owner->id,
+            'title' => 'Anonymous Comment Routine',
+            'body' => 'Routine body.',
+            'mood_tag' => 3,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($user)->post('/routines/'.$routine->id.'/comments', [
+            'body' => 'Posting this anonymously.',
+            'is_anonymous' => true,
+        ])->assertRedirect();
+
+        $comment = Comment::where('commentable_id', $routine->id)
+            ->where('body', 'Posting this anonymously.')
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $comment->is_anonymous);
+
+        $feed = $this->actingAs($owner)->get('/community');
+        $feed->assertSee('Anonymous community member');
+        $feed->assertDontSee($user->name);
+    }
+
+    public function test_user_can_reply_anonymously(): void
+    {
+        $owner = User::factory()->create();
+        $author = User::factory()->create();
+        $replier = User::factory()->create();
+
+        $routine = Routine::create([
+            'user_id' => $owner->id,
+            'title' => 'Anonymous Reply Routine',
+            'body' => 'Routine body.',
+            'mood_tag' => 2,
+            'status' => 'active',
+        ]);
+
+        $parent = Comment::create([
+            'user_id' => $author->id,
+            'commentable_type' => Routine::class,
+            'commentable_id' => $routine->id,
+            'body' => 'Top comment',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($replier)->post('/routines/'.$routine->id.'/comments', [
+            'parent_id' => $parent->id,
+            'body' => 'Anonymous reply text',
+            'is_anonymous' => true,
+        ])->assertRedirect();
+
+        $reply = Comment::where('parent_id', $parent->id)
+            ->where('body', 'Anonymous reply text')
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $reply->is_anonymous);
+
+        $feed = $this->actingAs($owner)->get('/community');
+        $feed->assertSee('Anonymous reply text');
+        $feed->assertSee('Anonymous community member');
+        $feed->assertDontSee($replier->name);
+    }
 }

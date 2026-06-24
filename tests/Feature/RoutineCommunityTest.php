@@ -147,4 +147,33 @@ class RoutineCommunityTest extends TestCase
         $this->post('/routines/1/save')->assertRedirect('/login');
         $this->post('/routines/1/react', ['reaction' => 'heart'])->assertRedirect('/login');
     }
+
+    public function test_user_can_share_routine_anonymously(): void
+    {
+        $user = User::factory()->create([
+            'anonymous_sharing' => true,
+        ]);
+
+        $category = RoutineCategory::create([
+            'name' => 'Relaxation Techniques',
+            'slug' => 'relaxation-techniques',
+            'description' => 'Relax routines',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)->post('/routines', [
+            'title' => 'Anonymous Relax Routine',
+            'body' => 'Warm shower, soft playlist, and deep breathing.',
+            'mood_tag' => 2,
+            'routine_category_id' => $category->id,
+            'is_anonymous' => true,
+        ])->assertRedirect();
+
+        $routine = Routine::where('title', 'Anonymous Relax Routine')->firstOrFail();
+
+        $this->assertTrue((bool) $routine->is_anonymous);
+
+        $response = $this->actingAs($user)->get('/community');
+        $response->assertSee('Anonymous user');
+    }
 }

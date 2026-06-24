@@ -128,13 +128,19 @@
 
                         <form method="POST" action="{{ route('routines.comments.store', $routine->id) }}" class="flex items-start gap-2 mb-3">
                             @csrf
-                            <textarea
-                                name="body"
-                                rows="2"
-                                class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-                                placeholder="Share encouragement or feedback..."
-                                required
-                            ></textarea>
+                            <div class="flex-1">
+                                <textarea
+                                    name="body"
+                                    rows="2"
+                                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                    placeholder="Share encouragement or feedback..."
+                                    required
+                                ></textarea>
+                                <label class="inline-flex items-center mt-2 text-xs text-gray-600">
+                                    <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
+                                    Comment anonymously
+                                </label>
+                            </div>
                             <button
                                 type="submit"
                                 class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
@@ -149,7 +155,7 @@
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
                                             <p class="text-xs text-gray-500">
-                                                {{ $comment->user?->name ?? 'Community member' }} · {{ optional($comment->created_at)->diffForHumans() }}
+                                                {{ $comment->display_author }} · {{ optional($comment->created_at)->diffForHumans() }}
                                             </p>
                                             <p class="text-sm text-gray-700 mt-1">{{ $comment->body }}</p>
                                         </div>
@@ -194,13 +200,19 @@
                                         @csrf
                                         <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                                         <div class="flex items-start gap-2">
-                                            <textarea
-                                                name="body"
-                                                rows="2"
-                                                class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-                                                placeholder="Write a reply..."
-                                                required
-                                            ></textarea>
+                                            <div class="flex-1">
+                                                <textarea
+                                                    name="body"
+                                                    rows="2"
+                                                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                                    placeholder="Write a reply..."
+                                                    required
+                                                ></textarea>
+                                                <label class="inline-flex items-center mt-2 text-xs text-gray-600">
+                                                    <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
+                                                    Reply anonymously
+                                                </label>
+                                            </div>
                                             <button
                                                 type="submit"
                                                 class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
@@ -216,7 +228,7 @@
                                                 <div class="flex items-start justify-between gap-3">
                                                     <div>
                                                         <p class="text-xs text-gray-500">
-                                                            {{ $reply->user?->name ?? 'Community member' }} · {{ optional($reply->created_at)->diffForHumans() }}
+                                                            {{ $reply->display_author }} · {{ optional($reply->created_at)->diffForHumans() }}
                                                         </p>
                                                         <p class="text-sm text-gray-700 mt-1">{{ $reply->body }}</p>
                                                     </div>

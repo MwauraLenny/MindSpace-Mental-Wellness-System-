@@ -12,8 +12,16 @@ class Comment extends Model
         'commentable_id',
         'parent_id',
         'body',
+        'is_anonymous',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_anonymous' => 'boolean',
+        ];
+    }
 
     public function user()
     {
@@ -35,5 +43,14 @@ class Comment extends Model
         return $this->hasMany(self::class, 'parent_id')
             ->where('status', 'active')
             ->latest();
+    }
+
+    public function getDisplayAuthorAttribute(): string
+    {
+        if ($this->is_anonymous) {
+            return 'Anonymous community member';
+        }
+
+        return $this->user?->name ?? 'Community member';
     }
 }

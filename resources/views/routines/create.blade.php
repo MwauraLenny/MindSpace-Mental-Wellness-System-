@@ -10,7 +10,8 @@
             <div class="bg-white shadow sm:rounded-lg p-6">
                 <p class="text-gray-600 text-sm mb-6">
                     Share what helped improve your mood. Your routine will be shown
-                    to other users experiencing the same mood level.
+                    to other users experiencing the same mood level. You can post anonymously
+                    to hide your username while still helping the community.
                 </p>
 
                 <form method="POST" action="{{ route('routines.store') }}">
@@ -96,7 +97,7 @@
                         <input type="checkbox" name="is_anonymous" id="is_anonymous" value="1"
                             {{ Auth::user()->anonymous_sharing ? 'checked' : '' }}>
                         <label for="is_anonymous" class="text-sm text-gray-600">
-                            Post anonymously
+                            Post anonymously (hide my username in community feed)
                         </label>
                     </div>
 
