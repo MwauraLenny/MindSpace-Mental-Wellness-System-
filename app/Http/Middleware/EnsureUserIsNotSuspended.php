@@ -18,6 +18,20 @@ class EnsureUserIsNotSuspended
             return $next($request);
         }
 
+        if ($user->suspended_until && now()->greaterThanOrEqualTo($user->suspended_until)) {
+            $user->update([
+                'suspended_at' => null,
+                'suspended_until' => null,
+                'suspension_reason' => null,
+            ]);
+
+            return $next($request);
+        }
+
+        $periodMessage = $user->suspended_until
+            ? ' Suspension ends '.$user->suspended_until->diffForHumans().'.'
+            : ' Suspension period is currently open-ended.';
+
         if ($request->hasSession()) {
             UserSession::endBySessionId($request->session()->getId());
         }
@@ -28,6 +42,6 @@ class EnsureUserIsNotSuspended
 
         return redirect()
             ->route('login')
-            ->with('error', 'Your account is currently suspended. Please contact support.');
+            ->with('error', 'Your account is currently suspended.'.$periodMessage.' Please contact support if you believe this is a mistake.');
     }
 }

@@ -35,6 +35,10 @@ class DatabaseSeeder extends Seeder
         User::factory(8)->create();
 
         $this->call([
+            PresentationUserSeeder::class,
+        ]);
+
+        $this->call([
             RoutineCategorySeeder::class,
             MoodJournalSeeder::class,
             MoodEntrySeeder::class,

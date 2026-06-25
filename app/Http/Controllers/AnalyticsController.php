@@ -200,6 +200,9 @@ class AnalyticsController extends Controller
     public function admin(): View
     {
         $windowStart = Carbon::now()->subDays(30)->startOfDay();
+        $dateLabels = collect(range(0, 29))
+            ->map(fn (int $i) => Carbon::now()->subDays(29 - $i)->format('Y-m-d'))
+            ->values();
 
         $totalUsers = (int) DB::table('users')->count();
 
@@ -265,6 +268,44 @@ class AnalyticsController extends Controller
             })
             ->values();
 
+        $likesByDate = DB::table('routine_likes')
+            ->selectRaw('DATE(created_at) as date_key, COUNT(*) as total')
+            ->where('created_at', '>=', $windowStart)
+            ->groupBy('date_key')
+            ->pluck('total', 'date_key');
+
+        $savesByDate = DB::table('saved_routines')
+            ->selectRaw('DATE(created_at) as date_key, COUNT(*) as total')
+            ->where('created_at', '>=', $windowStart)
+            ->groupBy('date_key')
+            ->pluck('total', 'date_key');
+
+        $reactionsByDate = DB::table('routine_reactions')
+            ->selectRaw('DATE(created_at) as date_key, COUNT(*) as total')
+            ->where('created_at', '>=', $windowStart)
+            ->groupBy('date_key')
+            ->pluck('total', 'date_key');
+
+        $commentsByDate = DB::table('comments')
+            ->selectRaw('DATE(created_at) as date_key, COUNT(*) as total')
+            ->where('created_at', '>=', $windowStart)
+            ->where('commentable_type', Routine::class)
+            ->groupBy('date_key')
+            ->pluck('total', 'date_key');
+
+        $engagementTrendLikes = $dateLabels
+            ->map(fn ($date) => (int) ($likesByDate[$date] ?? 0))
+            ->values();
+        $engagementTrendSaves = $dateLabels
+            ->map(fn ($date) => (int) ($savesByDate[$date] ?? 0))
+            ->values();
+        $engagementTrendReactions = $dateLabels
+            ->map(fn ($date) => (int) ($reactionsByDate[$date] ?? 0))
+            ->values();
+        $engagementTrendComments = $dateLabels
+            ->map(fn ($date) => (int) ($commentsByDate[$date] ?? 0))
+            ->values();
+
         $mostCommonEmotions = DB::table('mood_logs')
             ->select('mood_category', DB::raw('COUNT(*) as total'))
             ->groupBy('mood_category')
@@ -295,8 +336,17 @@ class AnalyticsController extends Controller
             'routinePopularity' => $routinePopularity,
             'mostCommonEmotions' => $mostCommonEmotions,
             'activeUsersWindowLabel' => 'Last 30 days',
+            'engagementTrendDates' => $dateLabels,
+            'engagementTrendLikes' => $engagementTrendLikes,
+            'engagementTrendSaves' => $engagementTrendSaves,
+            'engagementTrendReactions' => $engagementTrendReactions,
+            'engagementTrendComments' => $engagementTrendComments,
             'routinePopularityLabels' => $routinePopularity->pluck('title')->values(),
             'routinePopularityScores' => $routinePopularity->pluck('popularity_score')->values(),
+            'routineLikesSeries' => $routinePopularity->pluck('likes_count')->values(),
+            'routineSavesSeries' => $routinePopularity->pluck('saves_count')->values(),
+            'routineReactionsSeries' => $routinePopularity->pluck('reactions_count')->values(),
+            'routineCommentsSeries' => $routinePopularity->pluck('comments_count')->values(),
             'emotionLabels' => $mostCommonEmotions->map(fn (array $item) => trim($item['emoji'].' '.$item['label']))->values(),
             'emotionTotals' => $mostCommonEmotions->pluck('total')->values(),
         ]);

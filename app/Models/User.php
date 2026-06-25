@@ -24,8 +24,10 @@ class User extends Authenticatable
         'role_id',
         'anonymous_sharing',
         'suspended_at',
+        'suspended_until',
         'suspension_reason',
         'banned_at',
+        'banned_until',
         'ban_reason',
     ];
 
@@ -41,18 +43,36 @@ class User extends Authenticatable
             'password' => 'hashed',
             'anonymous_sharing' => 'boolean',
             'suspended_at' => 'datetime',
+            'suspended_until' => 'datetime',
             'banned_at' => 'datetime',
+            'banned_until' => 'datetime',
         ];
     }
 
     public function getIsSuspendedAttribute(): bool
     {
-        return $this->suspended_at !== null;
+        if ($this->suspended_at === null) {
+            return false;
+        }
+
+        if ($this->suspended_until === null) {
+            return true;
+        }
+
+        return now()->lt($this->suspended_until);
     }
 
     public function getIsBannedAttribute(): bool
     {
-        return $this->banned_at !== null;
+        if ($this->banned_at === null) {
+            return false;
+        }
+
+        if ($this->banned_until === null) {
+            return true;
+        }
+
+        return now()->lt($this->banned_until);
     }
 
     public function journals()

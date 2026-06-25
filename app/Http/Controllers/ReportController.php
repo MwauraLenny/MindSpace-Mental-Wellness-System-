@@ -89,6 +89,19 @@ class ReportController extends Controller
             ]
         );
 
+        if ($ownerId > 0) {
+            $notificationService->createForUser(
+                $ownerId,
+                'admin_notification',
+                'Content warning notice',
+                'One of your posts was flagged by another community member and is awaiting moderator review.',
+                [
+                    'report_id' => $report->id,
+                    'report_reason' => $validated['reason'],
+                ]
+            );
+        }
+
         return back()->with('success', 'Thanks for reporting. Our moderation team will review this content.');
     }
 
@@ -159,7 +172,7 @@ class ReportController extends Controller
     public function moderate(Request $request, Report $report): RedirectResponse
     {
         $validated = $request->validate([
-            'action' => 'required|string|in:resolve,dismiss,remove',
+            'action' => 'required|string|in:resolve,dismiss,remove,warn',
             'admin_note' => 'nullable|string|max:1000',
         ]);
 
@@ -220,6 +233,21 @@ class ReportController extends Controller
                 'action' => $validated['action'],
             ]
         );
+
+        $targetOwnerId = (int) optional($report->reportable)->user_id;
+
+        if ($validated['action'] === 'warn' && $targetOwnerId > 0) {
+            $notificationService->createForUser(
+                $targetOwnerId,
+                'admin_notification',
+                'Moderator warning on your content',
+                'A moderator issued a warning on your flagged content. Please review community guidelines.',
+                [
+                    'report_id' => $report->id,
+                    'admin_note' => $validated['admin_note'] ?? null,
+                ]
+            );
+        }
 
         return back()->with('success', 'Moderation action saved successfully.');
     }

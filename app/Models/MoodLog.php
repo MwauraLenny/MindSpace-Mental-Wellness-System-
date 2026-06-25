@@ -13,19 +13,19 @@ class MoodLog extends Model
 
     public const CATEGORIES = [
         'happy' => ['label' => 'Happy', 'emoji' => '😄', 'score' => 5],
-        'sad' => ['label' => 'Sad', 'emoji' => '😢', 'score' => 2],
-        'angry' => ['label' => 'Angry', 'emoji' => '😠', 'score' => 1],
-        'stressed' => ['label' => 'Stressed', 'emoji' => '😫', 'score' => 1],
-        'anxious' => ['label' => 'Anxious', 'emoji' => '😰', 'score' => 1],
+        'sad' => ['label' => 'Sad', 'emoji' => '😢', 'score' => 1],
+        'angry' => ['label' => 'Angry', 'emoji' => '😠', 'score' => 2],
+        'stressed' => ['label' => 'Stressed', 'emoji' => '😫', 'score' => 2],
+        'anxious' => ['label' => 'Anxious', 'emoji' => '😰', 'score' => 3],
         'relaxed' => ['label' => 'Relaxed', 'emoji' => '😌', 'score' => 4],
         'excited' => ['label' => 'Excited', 'emoji' => '🤩', 'score' => 5],
-        'tired' => ['label' => 'Tired', 'emoji' => '😴', 'score' => 2],
+        'tired' => ['label' => 'Tired', 'emoji' => '😴', 'score' => 3],
     ];
 
     private const SCORE_FALLBACK_CATEGORY = [
-        1 => 'stressed',
-        2 => 'sad',
-        3 => 'tired',
+        1 => 'sad',
+        2 => 'stressed',
+        3 => 'anxious',
         4 => 'relaxed',
         5 => 'happy',
     ];
@@ -49,6 +49,23 @@ class MoodLog extends Model
     public static function categories(): array
     {
         return self::CATEGORIES;
+    }
+
+    public static function categoriesByScoreDesc(): array
+    {
+        $categories = self::CATEGORIES;
+
+        uasort($categories, static function (array $left, array $right): int {
+            $scoreComparison = $right['score'] <=> $left['score'];
+
+            if ($scoreComparison !== 0) {
+                return $scoreComparison;
+            }
+
+            return strcmp($left['label'], $right['label']);
+        });
+
+        return $categories;
     }
 
     public static function categoryMeta(string $key): array

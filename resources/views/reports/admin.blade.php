@@ -119,13 +119,22 @@
                                 @endif
                             </div>
 
-                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2">
+                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-2">
                                 <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">
                                     @csrf
                                     @method('PATCH')
                                     <input type="hidden" name="action" value="resolve">
                                     <textarea name="admin_note" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional admin note"></textarea>
                                     <button type="submit" class="w-full text-xs px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700">Mark Resolved</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="action" value="warn">
+                                    <label class="block text-xs font-semibold text-gray-700">Warning note</label>
+                                    <textarea name="admin_note" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Explain the warning to the content owner" required></textarea>
+                                    <button type="submit" class="w-full text-xs px-3 py-2 rounded bg-amber-600 text-white hover:bg-amber-700">Warn User</button>
                                 </form>
 
                                 <form method="POST" action="{{ route('admin.reports.moderate', $report) }}" class="space-y-2">

@@ -141,56 +141,74 @@
                     </a>
                 </div>
 
-                <form method="GET" action="{{ route('community.feed') }}" class="flex flex-wrap items-center gap-2">
+                <form method="GET" action="{{ route('community.feed') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 items-end">
                     <input type="hidden" name="view" value="{{ $view }}">
 
-                    <label for="q" class="text-sm font-medium text-gray-700">Search</label>
-                    <input
-                        id="q"
-                        name="q"
-                        type="text"
-                        value="{{ $search }}"
-                        class="rounded border-gray-300 text-sm"
-                        placeholder="Title, details, or contributor"
-                    >
+                    <div class="xl:col-span-2 min-w-0">
+                        <label for="q" class="text-sm font-medium text-gray-700">Search</label>
+                        <input
+                            id="q"
+                            name="q"
+                            type="text"
+                            value="{{ $search }}"
+                            class="mt-1 w-full rounded border-gray-300 text-sm"
+                            placeholder="Title, details, or contributor"
+                        >
+                    </div>
 
                     @if(in_array($view, ['community', 'recommendations'], true))
-                        <label for="mood_scope" class="text-sm font-medium text-gray-700">Mood scope</label>
-                        <select id="mood_scope" name="mood_scope" class="rounded border-gray-300 text-sm">
-                            <option value="all" @selected($moodScope === 'all')>All shared routines</option>
-                            <option value="match" @selected($moodScope === 'match')>Match my latest mood</option>
-                        </select>
+                        <div class="min-w-0">
+                            <label for="mood_scope" class="text-sm font-medium text-gray-700">Mood scope</label>
+                            <select id="mood_scope" name="mood_scope" class="mt-1 w-full rounded border-gray-300 text-sm">
+                                <option value="all" @selected($moodScope === 'all')>All shared routines</option>
+                                <option value="match" @selected($moodScope === 'match')>Match my latest mood</option>
+                            </select>
+                        </div>
                     @endif
 
-                    <label for="category_id" class="text-sm font-medium text-gray-700">Category</label>
-                    <select id="category_id" name="category_id" class="rounded border-gray-300 text-sm">
-                        <option value="">All categories</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}" @selected((string) $selectedCategory === (string) $category->id)>
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="min-w-0">
+                        <label for="category_id" class="text-sm font-medium text-gray-700">Category</label>
+                        <select id="category_id" name="category_id" class="mt-1 w-full rounded border-gray-300 text-sm">
+                            <option value="">All categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" @selected((string) $selectedCategory === (string) $category->id)>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <label for="mood_tag" class="text-sm font-medium text-gray-700">Mood level</label>
-                    <select id="mood_tag" name="mood_tag" class="rounded border-gray-300 text-sm">
-                        <option value="0">All moods</option>
-                        @foreach([1=>'😢 1',2=>'😟 2',3=>'😐 3',4=>'🙂 4',5=>'😄 5'] as $moodValue => $moodLabel)
-                            <option value="{{ $moodValue }}" @selected((int) $explicitMoodTag === (int) $moodValue)>
-                                {{ $moodLabel }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="min-w-0">
+                        <label for="mood_tag" class="text-sm font-medium text-gray-700">Mood level</label>
+                        <select id="mood_tag" name="mood_tag" class="mt-1 w-full rounded border-gray-300 text-sm">
+                            <option value="0">All moods</option>
+                            @foreach([1=>'😢 1',2=>'😟 2',3=>'😐 3',4=>'🙂 4',5=>'😄 5'] as $moodValue => $moodLabel)
+                                <option value="{{ $moodValue }}" @selected((int) $explicitMoodTag === (int) $moodValue)>
+                                    {{ $moodLabel }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <label for="sort" class="text-sm font-medium text-gray-700">Sort</label>
-                    <select id="sort" name="sort" class="rounded border-gray-300 text-sm">
-                        <option value="trending" @selected($sort === 'trending')>Trending first</option>
-                        <option value="latest" @selected($sort === 'latest')>Latest first</option>
-                    </select>
+                    <div class="min-w-0">
+                        <label for="sort" class="text-sm font-medium text-gray-700">Sort</label>
+                        <select id="sort" name="sort" class="mt-1 w-full rounded border-gray-300 text-sm">
+                            <option value="trending" @selected($sort === 'trending')>Trending first</option>
+                            <option value="latest" @selected($sort === 'latest')>Latest first</option>
+                        </select>
+                    </div>
 
-                    <button type="submit" class="px-3 py-1.5 rounded text-sm bg-gray-700 text-white hover:bg-gray-800">
-                        Apply filter
-                    </button>
+                    <div class="xl:justify-self-end flex gap-2">
+                        <button type="submit" class="w-full xl:w-auto px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700">
+                            Search
+                        </button>
+                        <a
+                            href="{{ route('community.feed', ['view' => $view]) }}"
+                            class="w-full xl:w-auto px-3 py-2 rounded text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 text-center"
+                        >
+                            Reset
+                        </a>
+                    </div>
                 </form>
 
                 <div class="bg-gray-50 border border-gray-100 rounded p-3">
@@ -314,34 +332,38 @@
                     </div>
 
                     <div class="mt-4 border-t border-gray-100 pt-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Community comments</h4>
+                        <details>
+                            <summary class="cursor-pointer text-sm font-semibold text-gray-700 hover:text-gray-900">
+                                Show comments ({{ $routine->comments->count() }})
+                            </summary>
 
-                        <form method="POST" action="{{ route('routines.comments.store', $routine->id) }}" class="flex items-start gap-2 mb-3">
-                            @csrf
-                            <div class="flex-1">
-                                <textarea
-                                    name="body"
-                                    rows="2"
-                                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                                    placeholder="Share encouragement or feedback..."
-                                    required
-                                ></textarea>
-                                <label class="inline-flex items-center mt-2 text-xs text-gray-600">
-                                    <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
-                                    Comment anonymously
-                                </label>
-                            </div>
-                            <button
-                                type="submit"
-                                class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
-                            >
-                                Comment
-                            </button>
-                        </form>
+                            <div class="mt-3">
+                                <form method="POST" action="{{ route('routines.comments.store', $routine->id) }}" class="flex items-start gap-2 mb-3">
+                                    @csrf
+                                    <div class="flex-1">
+                                        <textarea
+                                            name="body"
+                                            rows="2"
+                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                            placeholder="Share encouragement or feedback..."
+                                            required
+                                        ></textarea>
+                                        <label class="inline-flex items-center mt-2 text-xs text-gray-600">
+                                            <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
+                                            Comment anonymously
+                                        </label>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
+                                    >
+                                        Comment
+                                    </button>
+                                </form>
 
-                        <div class="space-y-2">
-                            @forelse($routine->comments as $comment)
-                                <div class="bg-gray-50 border border-gray-100 rounded px-3 py-2" data-thread-root>
+                                <div class="space-y-2">
+                                    @forelse($routine->comments as $comment)
+                                        <div class="bg-gray-50 border border-gray-100 rounded px-3 py-2" data-thread-root>
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
                                             <p class="text-xs text-gray-500">
@@ -377,6 +399,7 @@
                                                     @csrf
                                                     <input type="hidden" name="reportable_type" value="comment">
                                                     <input type="hidden" name="reportable_id" value="{{ $comment->id }}">
+                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Report reason</label>
                                                     <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
                                                         <option value="spam">Spam</option>
                                                         <option value="harassment">Harassment</option>
@@ -385,8 +408,9 @@
                                                         <option value="misinformation">Misinformation</option>
                                                         <option value="other">Other</option>
                                                     </select>
-                                                    <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional details"></textarea>
-                                                    <button type="submit" class="text-xs px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700">Submit</button>
+                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">What happened?</label>
+                                                    <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Add context for the moderation team"></textarea>
+                                                    <button type="submit" class="w-full text-xs px-2.5 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">Submit report</button>
                                                 </form>
                                             </details>
                                         @endif
@@ -462,6 +486,7 @@
                                                             @csrf
                                                             <input type="hidden" name="reportable_type" value="comment">
                                                             <input type="hidden" name="reportable_id" value="{{ $reply->id }}">
+                                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Report reason</label>
                                                             <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
                                                                 <option value="spam">Spam</option>
                                                                 <option value="harassment">Harassment</option>
@@ -470,19 +495,22 @@
                                                                 <option value="misinformation">Misinformation</option>
                                                                 <option value="other">Other</option>
                                                             </select>
-                                                            <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional details"></textarea>
-                                                            <button type="submit" class="text-xs px-2.5 py-1 rounded bg-amber-600 text-white hover:bg-amber-700">Submit</button>
+                                                            <label class="block text-xs font-semibold text-gray-700 mb-1">What happened?</label>
+                                                            <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Add context for the moderation team"></textarea>
+                                                            <button type="submit" class="w-full text-xs px-2.5 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">Submit report</button>
                                                         </form>
                                                     </details>
                                                 @endif
                                             </div>
                                         @endforeach
                                     </div>
+                                        </div>
+                                    @empty
+                                        <p class="text-sm text-gray-500">No comments yet. Be the first to react with words.</p>
+                                    @endforelse
                                 </div>
-                            @empty
-                                <p class="text-sm text-gray-500">No comments yet. Be the first to react with words.</p>
-                            @endforelse
-                        </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             @empty

@@ -44,8 +44,15 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-500">
-                                    @if(!empty($log->meta))
-                                        <pre class="whitespace-pre-wrap">{{ json_encode($log->meta, JSON_PRETTY_PRINT) }}</pre>
+                                    @if(!empty($log->meta) && is_array($log->meta))
+                                        <div class="space-y-1">
+                                            @foreach(array_slice($log->meta, 0, 4, true) as $metaKey => $metaValue)
+                                                <div>
+                                                    <span class="font-semibold text-gray-600">{{ \Illuminate\Support\Str::headline((string) $metaKey) }}:</span>
+                                                    <span>{{ \Illuminate\Support\Str::limit(is_scalar($metaValue) ? (string) $metaValue : json_encode($metaValue), 80) }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     @else
                                         -
                                     @endif

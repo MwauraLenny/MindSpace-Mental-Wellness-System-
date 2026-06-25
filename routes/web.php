@@ -49,7 +49,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });
 Route::middleware(['auth'])->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'personal'])->name('analytics.personal');
+});
 
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/mood', [App\Http\Controllers\MoodLogController::class, 'index'])->name('mood.index');
     Route::post('/mood', [App\Http\Controllers\MoodLogController::class, 'store'])->name('mood.store');
     Route::get('/mood/dashboard', [App\Http\Controllers\MoodLogController::class, 'dashboard'])->name('mood.dashboard');

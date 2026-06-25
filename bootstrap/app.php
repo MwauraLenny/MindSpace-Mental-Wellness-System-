@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'not_admin' => \App\Http\Middleware\NotAdminMiddleware::class,
             'notifications.sync' => \App\Http\Middleware\SyncNotificationsMiddleware::class,
             'suspended' => \App\Http\Middleware\EnsureUserIsNotSuspended::class,
             'banned' => \App\Http\Middleware\EnsureUserIsNotBanned::class,

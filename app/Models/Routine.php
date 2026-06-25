@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Routine extends Model
 {
+    private const FALLBACK_TITLES = [
+        'Mind Reset Routine',
+        'Calm and Focus Flow',
+        'Quick Mood Lift',
+        'Grounding Wellness Steps',
+        'Daily Balance Practice',
+    ];
+
     protected $fillable = [
         'user_id',
         'routine_category_id',
@@ -59,6 +67,10 @@ class Routine extends Model
             return $this->title;
         }
 
-        return 'Community Wellness Routine';
+        $index = $this->id
+            ? ($this->id - 1) % count(self::FALLBACK_TITLES)
+            : 0;
+
+        return self::FALLBACK_TITLES[$index];
     }
 }

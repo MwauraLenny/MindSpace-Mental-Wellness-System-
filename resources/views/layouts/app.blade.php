@@ -88,11 +88,26 @@
         </div>
 
         <script>
+            const syncThemeIcons = () => {
+                const isDark = document.documentElement.classList.contains('dark');
+
+                document.querySelectorAll('[data-theme-icon-sun]').forEach((icon) => {
+                    icon.classList.toggle('hidden', isDark);
+                });
+
+                document.querySelectorAll('[data-theme-icon-moon]').forEach((icon) => {
+                    icon.classList.toggle('hidden', !isDark);
+                });
+            };
+
+            syncThemeIcons();
+
             document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const root = document.documentElement;
                     const isDark = root.classList.toggle('dark');
                     localStorage.setItem('mindspace-theme', isDark ? 'dark' : 'light');
+                    syncThemeIcons();
                 });
             });
         </script>

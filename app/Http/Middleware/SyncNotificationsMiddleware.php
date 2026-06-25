@@ -29,14 +29,10 @@ class SyncNotificationsMiddleware
                 Cache::put($syncKey, now()->timestamp, now()->addMinutes(5));
             }
 
-            $unreadCount = Cache::remember(
-                'notifications:unread-count:user:'.$user->id,
-                now()->addSeconds(30),
-                fn (): int => Notification::query()
-                    ->where('user_id', $user->id)
-                    ->whereNull('read_at')
-                    ->count()
-            );
+            $unreadCount = Notification::query()
+                ->where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
 
             View::share('unreadNotificationCount', $unreadCount);
         } else {

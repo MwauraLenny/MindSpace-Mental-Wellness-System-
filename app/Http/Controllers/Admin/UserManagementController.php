@@ -11,6 +11,7 @@ use App\Models\Routine;
 use App\Models\UserSession;
 use App\Services\NotificationService;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -102,12 +103,16 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'reason' => ['nullable', 'string', 'max:500'],
+            'reason' => ['required', 'string', 'max:500'],
+            'duration' => ['required', 'in:3d,1w,1m,3m,1y'],
         ]);
+
+        $suspendedUntil = $this->resolveRestrictionUntil($validated['duration']);
 
         $user->update([
             'suspended_at' => now(),
-            'suspension_reason' => $validated['reason'] ?? null,
+            'suspended_until' => $suspendedUntil,
+            'suspension_reason' => $validated['reason'],
         ]);
 
         UserSession::endAllForUser((int) $user->id);
@@ -120,7 +125,9 @@ class UserManagementController extends Controller
             User::class,
             (int) $user->id,
             [
-                'reason' => $validated['reason'] ?? null,
+                'reason' => $validated['reason'],
+                'duration' => $validated['duration'],
+                'suspended_until' => optional($suspendedUntil)->toDateTimeString(),
             ]
         );
 
@@ -130,10 +137,12 @@ class UserManagementController extends Controller
             (int) $user->id,
             'admin_notification',
             'Account suspended',
-            'Your account has been suspended by an administrator.',
+            'Your account has been suspended by an administrator until '.($suspendedUntil?->format('M d, Y h:i A') ?? 'further notice').'.',
             [
                 'suspended_by' => $request->user()?->id,
-                'reason' => $validated['reason'] ?? null,
+                'reason' => $validated['reason'],
+                'duration' => $validated['duration'],
+                'suspended_until' => optional($suspendedUntil)->toDateTimeString(),
             ]
         );
 
@@ -148,6 +157,7 @@ class UserManagementController extends Controller
 
         $user->update([
             'suspended_at' => null,
+            'suspended_until' => null,
             'suspension_reason' => null,
         ]);
 
@@ -205,14 +215,19 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'reason' => ['nullable', 'string', 'max:500'],
+            'reason' => ['required', 'string', 'max:500'],
+            'duration' => ['required', 'in:3d,1w,1m,3m,1y'],
         ]);
+
+        $bannedUntil = $this->resolveRestrictionUntil($validated['duration']);
 
         $user->update([
             'banned_at' => now(),
-            'ban_reason' => $validated['reason'] ?? null,
+            'banned_until' => $bannedUntil,
+            'ban_reason' => $validated['reason'],
             'suspended_at' => now(),
-            'suspension_reason' => $validated['reason'] ?? 'Auto-suspended due to ban.',
+            'suspended_until' => $bannedUntil,
+            'suspension_reason' => $validated['reason'],
         ]);
 
         UserSession::endAllForUser((int) $user->id);
@@ -225,7 +240,24 @@ class UserManagementController extends Controller
             User::class,
             (int) $user->id,
             [
-                'reason' => $validated['reason'] ?? null,
+                'reason' => $validated['reason'],
+                'duration' => $validated['duration'],
+                'banned_until' => optional($bannedUntil)->toDateTimeString(),
+            ]
+        );
+
+        /** @var NotificationService $notificationService */
+        $notificationService = app(NotificationService::class);
+        $notificationService->createForUser(
+            (int) $user->id,
+            'admin_notification',
+            'Account banned',
+            'Your account has been banned by an administrator until '.($bannedUntil?->format('M d, Y h:i A') ?? 'further notice').'.',
+            [
+                'banned_by' => $request->user()?->id,
+                'reason' => $validated['reason'],
+                'duration' => $validated['duration'],
+                'banned_until' => optional($bannedUntil)->toDateTimeString(),
             ]
         );
 
@@ -240,8 +272,10 @@ class UserManagementController extends Controller
 
         $user->update([
             'banned_at' => null,
+            'banned_until' => null,
             'ban_reason' => null,
             'suspended_at' => null,
+            'suspended_until' => null,
             'suspension_reason' => null,
         ]);
 
@@ -356,5 +390,16 @@ class UserManagementController extends Controller
             'meta' => $meta,
             'performed_at' => now(),
         ]);
+    }
+
+    private function resolveRestrictionUntil(string $duration): Carbon
+    {
+        return match ($duration) {
+            '3d' => now()->addDays(3),
+            '1w' => now()->addWeek(),
+            '1m' => now()->addMonth(),
+            '3m' => now()->addMonths(3),
+            '1y' => now()->addYear(),
+        };
     }
 }

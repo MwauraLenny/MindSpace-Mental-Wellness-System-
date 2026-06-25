@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12" x-data="{ activeModal: null }" @keydown.escape.window="activeModal = null">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="p-4 bg-green-100 border border-green-200 text-green-800 rounded">
@@ -19,7 +19,7 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg" :class="activeModal ? 'blur-sm pointer-events-none select-none' : ''">
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -83,7 +83,11 @@
                                                 Activity History
                                             </a>
 
-                                            @if($user->is_banned)
+                                            @if((int) auth()->id() === (int) $user->id)
+                                                <span class="inline-flex items-center px-3 py-1.5 rounded bg-slate-100 text-slate-700 text-xs">
+                                                    Self actions disabled
+                                                </span>
+                                            @elseif($user->is_banned)
                                                 <form method="POST" action="{{ route('admin.users.unban', $user) }}">
                                                     @csrf
                                                     @method('PATCH')
@@ -100,33 +104,21 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                <details>
-                                                    <summary class="inline-flex cursor-pointer items-center px-3 py-1.5 rounded bg-amber-100 text-amber-700 text-xs hover:bg-amber-200">
-                                                        Suspend
-                                                    </summary>
-                                                    <form method="POST" action="{{ route('admin.users.suspend', $user) }}" class="mt-2 p-3 border border-amber-200 rounded bg-amber-50/40 space-y-2 w-56">
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <textarea name="reason" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional suspension reason"></textarea>
-                                                        <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-1.5 rounded bg-amber-600 text-white text-xs hover:bg-amber-700">
-                                                            Confirm Suspend
-                                                        </button>
-                                                    </form>
-                                                </details>
+                                                <button
+                                                    type="button"
+                                                    @click="activeModal = 'suspend-{{ $user->id }}'"
+                                                    class="inline-flex items-center px-3 py-1.5 rounded bg-amber-100 text-amber-700 text-xs hover:bg-amber-200"
+                                                >
+                                                    Suspend
+                                                </button>
 
-                                                <details>
-                                                    <summary class="inline-flex cursor-pointer items-center px-3 py-1.5 rounded bg-red-100 text-red-700 text-xs hover:bg-red-200">
-                                                        Ban
-                                                    </summary>
-                                                    <form method="POST" action="{{ route('admin.users.ban', $user) }}" class="mt-2 p-3 border border-red-200 rounded bg-red-50/40 space-y-2 w-56">
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <textarea name="reason" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Optional ban reason"></textarea>
-                                                        <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-1.5 rounded bg-red-600 text-white text-xs hover:bg-red-700">
-                                                            Confirm Ban
-                                                        </button>
-                                                    </form>
-                                                </details>
+                                                <button
+                                                    type="button"
+                                                    @click="activeModal = 'ban-{{ $user->id }}'"
+                                                    class="inline-flex items-center px-3 py-1.5 rounded bg-red-100 text-red-700 text-xs hover:bg-red-200"
+                                                >
+                                                    Ban
+                                                </button>
                                             @endif
 
                                             @if((int) auth()->id() !== (int) $user->id)
@@ -146,6 +138,102 @@
                     </table>
                 </div>
             </div>
+
+            @foreach ($users as $user)
+                @if((int) auth()->id() !== (int) $user->id && ! $user->is_banned && ! $user->is_suspended)
+                    <div
+                        x-show="activeModal === 'suspend-{{ $user->id }}'"
+                        x-cloak
+                        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm" @click="activeModal = null"></div>
+                        <form method="POST" action="{{ route('admin.users.suspend', $user) }}" class="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-2xl border border-amber-200 max-h-[85vh] flex flex-col overflow-hidden">
+                            @csrf
+                            @method('PATCH')
+
+                            <div class="p-6 space-y-5 overflow-y-auto">
+                                <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Suspend {{ $user->name }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">Set a clear reason and duration for this suspension.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Suspension reason</label>
+                                    <textarea name="reason" rows="4" class="w-full rounded-md border-gray-300 text-sm" placeholder="Explain why this user is being suspended" required></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Suspension period</label>
+                                    <select name="duration" class="w-full rounded-md border-gray-300 text-sm" required>
+                                        <option value="3d">3 days</option>
+                                        <option value="1w">1 week</option>
+                                        <option value="1m">1 month</option>
+                                        <option value="3m">3 months</option>
+                                        <option value="1y">1 year</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-end gap-3">
+                                <button type="button" @click="activeModal = null" class="inline-flex items-center px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-100">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="inline-flex items-center px-4 py-2 rounded-md bg-amber-600 text-white text-sm font-semibold shadow hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                                    Submit Suspension
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div
+                        x-show="activeModal === 'ban-{{ $user->id }}'"
+                        x-cloak
+                        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm" @click="activeModal = null"></div>
+                        <form method="POST" action="{{ route('admin.users.ban', $user) }}" class="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-2xl border border-red-200 max-h-[85vh] flex flex-col overflow-hidden">
+                            @csrf
+                            @method('PATCH')
+
+                            <div class="p-6 space-y-5 overflow-y-auto">
+                                <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Ban {{ $user->name }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">Set a clear reason and duration for this ban.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Ban reason</label>
+                                    <textarea name="reason" rows="4" class="w-full rounded-md border-gray-300 text-sm" placeholder="Explain why this user is being banned" required></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Ban period</label>
+                                    <select name="duration" class="w-full rounded-md border-gray-300 text-sm" required>
+                                        <option value="3d">3 days</option>
+                                        <option value="1w">1 week</option>
+                                        <option value="1m">1 month</option>
+                                        <option value="3m">3 months</option>
+                                        <option value="1y">1 year</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-end gap-3">
+                                <button type="button" @click="activeModal = null" class="inline-flex items-center px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-100">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="inline-flex items-center px-4 py-2 rounded-md bg-red-600 text-white text-sm font-semibold shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                    Submit Ban
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
+            @endforeach
         </div>
     </div>
 </x-app-layout>

@@ -23,7 +23,7 @@
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white shadow-sm rounded-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800">Routine Popularity</h3>
-                    <p class="text-sm text-gray-600 mt-1">Engagement score based on likes, saves, reactions, and comments.</p>
+                    <p class="text-sm text-gray-600 mt-1">Daily engagement trend over time (likes, saves, reactions, comments).</p>
                     <canvas id="routinePopularityChart" class="mt-4" height="180"></canvas>
                 </div>
 
@@ -70,22 +70,54 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const routinePopularityLabels = @json($routinePopularityLabels);
-        const routinePopularityScores = @json($routinePopularityScores);
+        const engagementTrendDates = @json($engagementTrendDates);
+        const engagementTrendLikes = @json($engagementTrendLikes);
+        const engagementTrendSaves = @json($engagementTrendSaves);
+        const engagementTrendReactions = @json($engagementTrendReactions);
+        const engagementTrendComments = @json($engagementTrendComments);
         const emotionLabels = @json($emotionLabels);
         const emotionTotals = @json($emotionTotals);
 
         const routineCanvas = document.getElementById('routinePopularityChart');
         if (routineCanvas) {
             new Chart(routineCanvas, {
-                type: 'bar',
+                type: 'line',
                 data: {
-                    labels: routinePopularityLabels,
-                    datasets: [{
-                        label: 'Popularity Score',
-                        data: routinePopularityScores,
-                        backgroundColor: '#4f46e5',
-                    }],
+                    labels: engagementTrendDates,
+                    datasets: [
+                        {
+                            label: 'Likes',
+                            data: engagementTrendLikes,
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.18)',
+                            fill: false,
+                            tension: 0.25,
+                        },
+                        {
+                            label: 'Saves',
+                            data: engagementTrendSaves,
+                            borderColor: '#0ea5e9',
+                            backgroundColor: 'rgba(14, 165, 233, 0.18)',
+                            fill: false,
+                            tension: 0.25,
+                        },
+                        {
+                            label: 'Reactions',
+                            data: engagementTrendReactions,
+                            borderColor: '#16a34a',
+                            backgroundColor: 'rgba(22, 163, 74, 0.18)',
+                            fill: false,
+                            tension: 0.25,
+                        },
+                        {
+                            label: 'Comments',
+                            data: engagementTrendComments,
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.18)',
+                            fill: false,
+                            tension: 0.25,
+                        },
+                    ],
                 },
                 options: {
                     responsive: true,

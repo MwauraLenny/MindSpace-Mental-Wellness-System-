@@ -34,11 +34,11 @@
                 </article>
 
                 <article class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-xs uppercase text-gray-500">Most Improved Week</p>
+                    <p class="text-xs uppercase text-gray-500">Best Weekly Improvement</p>
                     @if($mostImprovedMoodReport['improvement'] > 0)
-                        <p class="text-2xl font-bold text-emerald-700 mt-2">+{{ $mostImprovedMoodReport['improvement'] }}</p>
+                        <p class="text-2xl font-bold text-emerald-700 mt-2">Average mood +{{ $mostImprovedMoodReport['improvement'] }}</p>
                         <p class="text-sm text-gray-600 mt-1">
-                            {{ $mostImprovedMoodReport['from_week'] }} to {{ $mostImprovedMoodReport['to_week'] }}
+                            Week of {{ \Carbon\Carbon::parse($mostImprovedMoodReport['from_week'])->format('M d') }} to week of {{ \Carbon\Carbon::parse($mostImprovedMoodReport['to_week'])->format('M d') }}
                         </p>
                     @else
                         <p class="text-sm text-gray-600 mt-2">More entries are needed to detect an improvement window.</p>

@@ -15,22 +15,136 @@ class MoodLogController extends Controller
 {
     public function index()
     {
-        $moodCategories = MoodLog::categories();
+        $userName = Auth::user()?->name ?? 'there';
+        $moodCategories = MoodLog::categoriesByScoreDesc();
 
-        $logs = MoodLog::where('user_id', Auth::id())
+        $logs = MoodLog::query()
+                ->where('user_id', Auth::id())
                     ->orderBy('logged_at', 'desc')
                     ->get();
+
+        $uniqueLoggedDates = $logs
+            ->pluck('logged_at')
+            ->filter()
+            ->map(fn (Carbon $loggedAt) => $loggedAt->toDateString())
+            ->unique()
+            ->values();
+
+        $streakDays = 0;
+
+        if ($uniqueLoggedDates->isNotEmpty()) {
+            $remainingDates = $uniqueLoggedDates->flip();
+            $cursor = Carbon::parse($uniqueLoggedDates->first())->startOfDay();
+
+            while ($remainingDates->has($cursor->toDateString())) {
+                $streakDays++;
+                $cursor->subDay();
+            }
+        }
+
+        $streakFire = match (true) {
+            $streakDays >= 30 => '🔥🔥🔥🔥',
+            $streakDays >= 14 => '🔥🔥🔥',
+            $streakDays >= 7 => '🔥🔥',
+            $streakDays >= 3 => '🔥',
+            default => '🕯️',
+        };
+
+        $streakTier = match (true) {
+            $streakDays >= 30 => 'Legendary streak',
+            $streakDays >= 14 => 'Strong streak',
+            $streakDays >= 7 => 'Solid streak',
+            $streakDays >= 3 => 'Building streak',
+            default => 'New streak',
+        };
+
+        $entriesCount = $logs->count();
+        $journalCount = $logs->filter(fn (MoodLog $log) => filled($log->journal_note))->count();
+        $positiveCount = $logs->where('mood_value', '>=', 4)->count();
+
+        $achievements = collect([
+            [
+                'title' => 'First Check-In',
+                'description' => 'Logged your first mood entry.',
+                'icon' => '🌱',
+                'unlocked' => $entriesCount >= 1,
+            ],
+            [
+                'title' => 'Consistent Week',
+                'description' => 'Logged moods for 7 or more days in total.',
+                'icon' => '📅',
+                'unlocked' => $entriesCount >= 7,
+            ],
+            [
+                'title' => 'On Fire',
+                'description' => 'Reached a 7-day streak.',
+                'icon' => '🔥',
+                'unlocked' => $streakDays >= 7,
+            ],
+            [
+                'title' => 'Flame Keeper',
+                'description' => 'Reached a 14-day streak.',
+                'icon' => '🔥🔥',
+                'unlocked' => $streakDays >= 14,
+            ],
+            [
+                'title' => 'Mood Legend',
+                'description' => 'Reached a 30-day streak.',
+                'icon' => '🔥🔥🔥',
+                'unlocked' => $streakDays >= 30,
+            ],
+            [
+                'title' => 'Reflective Writer',
+                'description' => 'Added 5 journal notes to mood logs.',
+                'icon' => '✍️',
+                'unlocked' => $journalCount >= 5,
+            ],
+            [
+                'title' => 'Bright Week',
+                'description' => 'Logged 5 moods in the positive zone (4-5).',
+                'icon' => '🌤️',
+                'unlocked' => $positiveCount >= 5,
+            ],
+        ]);
 
         $latestMood = $logs->first();
         $previousMood = $logs->skip(1)->first();
         $moodImproved = $latestMood && $previousMood
             && $latestMood->mood_value > $previousMood->mood_value;
+        $moodDropped = $latestMood && $previousMood
+            && $latestMood->mood_value < $previousMood->mood_value;
+        $moodStable = $latestMood && $previousMood
+            && $latestMood->mood_value === $previousMood->mood_value;
 
-        return view('mood.index', compact('logs', 'latestMood', 'moodImproved', 'moodCategories'));
+        $moodStableRegion = null;
+
+        if ($moodStable && $latestMood) {
+            $moodStableRegion = match (true) {
+                $latestMood->mood_value >= 4 => 'happy',
+                $latestMood->mood_value === 3 => 'mid',
+                default => 'bad',
+            };
+        }
+
+        return view('mood.index', compact(
+            'logs',
+            'latestMood',
+            'moodImproved',
+            'moodDropped',
+            'moodStable',
+            'moodStableRegion',
+            'moodCategories',
+            'userName',
+            'streakDays',
+            'streakFire',
+            'streakTier',
+            'achievements'
+        ));
     }
 
     public function dashboard(Request $request)
     {
+        $userName = Auth::user()?->name ?? 'there';
         $period = $this->resolvePeriod($request);
 
         $logs = $this->filteredLogsQuery($period)
@@ -123,6 +237,7 @@ class MoodLogController extends Controller
             'chartScores' => $dailyAverage->values(),
             'chartMoodLabels' => $moodCounts->keys()->map(fn ($key) => $categories[$key]['label'])->values(),
             'chartMoodCounts' => $moodCounts->values(),
+            'userName' => $userName,
         ]);
     }
 

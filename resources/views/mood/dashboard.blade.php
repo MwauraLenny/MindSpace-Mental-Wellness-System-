@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Mood Dashboard
+                {{ $userName }}'s Mood Dashboard
             </h2>
 
             <div class="flex items-center gap-2">
