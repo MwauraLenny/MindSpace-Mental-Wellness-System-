@@ -169,6 +169,11 @@ class ReportController extends Controller
         return view('reports.admin', $this->buildAdminReportData());
     }
 
+    public function moderation(): View
+    {
+        return view('reports.moderation', $this->buildAdminReportData());
+    }
+
     public function moderate(Request $request, Report $report): RedirectResponse
     {
         $validated = $request->validate([

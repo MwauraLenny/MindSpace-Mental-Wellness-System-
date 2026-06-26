@@ -5,13 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'MindSpace') }}</title>
 
-        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <script>
@@ -22,38 +20,21 @@
                 }
             })();
         </script>
-
-        <style>
-            html.dark body,
-            html.dark .min-h-screen {
-                background: #0f172a;
-                color: #e5e7eb;
-            }
-
-            html.dark .bg-white\/95 {
-                background-color: #111827 !important;
-            }
-
-            html.dark .text-gray-900,
-            html.dark .text-teal-700 {
-                color: #e5e7eb !important;
-            }
-
-            html.dark .ring-teal-100 {
-                --tw-ring-color: #374151 !important;
-            }
-        </style>
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 py-8 bg-gradient-to-b from-teal-50 via-white to-emerald-50">
+        <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 py-8 bg-gradient-to-b from-amber-50 via-orange-50 to-rose-100/70">
             <div class="text-center">
-                <a href="/" class="inline-flex justify-center">
-                    <x-application-logo class="w-16 h-16 fill-current text-teal-700" />
+                <a href="/" class="inline-flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/90 px-5 py-3 shadow-sm">
+                    <x-application-logo class="w-20 h-20" />
+                    <span class="text-left leading-tight">
+                        <span class="block text-2xl font-bold tracking-tight text-stone-800">MindSpace</span>
+                        <span class="block text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">Mental Wellness System</span>
+                    </span>
                 </a>
-                <p class="mt-3 text-sm font-medium tracking-wide text-teal-700">MindSpace Mental Wellness</p>
+                <p class="mt-3 text-sm font-medium tracking-wide text-amber-700">A calm space for healing, reflection, and growth</p>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-6 bg-white/95 shadow-lg ring-1 ring-teal-100 overflow-hidden sm:rounded-xl">
+            <div class="w-full sm:max-w-md mt-6 px-6 py-6 bg-white/95 shadow-lg ring-1 ring-amber-100 overflow-hidden sm:rounded-xl">
                 {{ $slot }}
             </div>
         </div>

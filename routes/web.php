@@ -19,10 +19,10 @@ Route::get('/health', [HealthController::class, 'liveness'])->name('health.liven
 Route::get('/ready', [HealthController::class, 'readiness'])->name('health.readiness');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'not_admin'])
     ->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/profile/view', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -42,12 +42,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
-    Route::get('/moderation', [ReportController::class, 'admin'])->name('admin.moderation.index');
+    Route::get('/moderation', [ReportController::class, 'moderation'])->name('admin.moderation.index');
     Route::get('/reports/export/csv', [ReportController::class, 'adminExportCsv'])->name('admin.reports.export.csv');
     Route::get('/reports/export/pdf', [ReportController::class, 'adminExportPdf'])->name('admin.reports.export.pdf');
     Route::patch('/reports/{report}/moderate', [ReportController::class, 'moderate'])->name('admin.reports.moderate');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'personal'])->name('analytics.personal');
 });
 
@@ -58,7 +58,7 @@ Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/mood/export/csv', [App\Http\Controllers\MoodLogController::class, 'exportCsv'])->name('mood.export.csv');
     Route::get('/mood/export/pdf', [App\Http\Controllers\MoodLogController::class, 'exportPdf'])->name('mood.export.pdf');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/community', [App\Http\Controllers\RoutineController::class, 'feed'])->name('community.feed');
     Route::get('/routines', [App\Http\Controllers\RoutineController::class, 'index'])->name('routines.index');
     Route::get('/routines/saved', [App\Http\Controllers\RoutineController::class, 'saved'])->name('routines.saved');
@@ -73,19 +73,19 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 
     Route::get('/reports/personal', [ReportController::class, 'personal'])->name('reports.personal');
     Route::get('/reports/personal/export/csv', [ReportController::class, 'personalExportCsv'])->name('reports.personal.export.csv');
     Route::get('/reports/personal/export/pdf', [ReportController::class, 'personalExportPdf'])->name('reports.personal.export.pdf');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/journals', [JournalController::class, 'index'])->name('journals.index');
     Route::get('/journals/create', [JournalController::class, 'create'])->name('journals.create');
     Route::post('/journals', [JournalController::class, 'store'])->name('journals.store');

@@ -69,12 +69,12 @@
         </style>
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-rose-100/60">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
+                <header class="bg-white/95 shadow-sm border-b border-amber-100">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
@@ -87,29 +87,5 @@
             </main>
         </div>
 
-        <script>
-            const syncThemeIcons = () => {
-                const isDark = document.documentElement.classList.contains('dark');
-
-                document.querySelectorAll('[data-theme-icon-sun]').forEach((icon) => {
-                    icon.classList.toggle('hidden', isDark);
-                });
-
-                document.querySelectorAll('[data-theme-icon-moon]').forEach((icon) => {
-                    icon.classList.toggle('hidden', !isDark);
-                });
-            };
-
-            syncThemeIcons();
-
-            document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-                button.addEventListener('click', () => {
-                    const root = document.documentElement;
-                    const isDark = root.classList.toggle('dark');
-                    localStorage.setItem('mindspace-theme', isDark ? 'dark' : 'light');
-                    syncThemeIcons();
-                });
-            });
-        </script>
     </body>
 </html>
