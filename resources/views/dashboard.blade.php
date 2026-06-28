@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between gap-4">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-slate-100 leading-tight">
                 Welcome, {{ $userName }}
             </h2>
 
@@ -14,13 +14,13 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12 bg-gradient-to-b from-transparent to-transparent dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.09),_rgba(2,6,23,0.98)_56%)]">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @php
                 $previousMood = $moodHistory->skip(1)->first();
             @endphp
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 dark:bg-slate-900/90 dark:ring-1 dark:ring-slate-700/60">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800">Streak Status</h3>
@@ -34,7 +34,7 @@
                     </a>
                 </div>
 
-                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <article class="rounded-md border border-orange-100 bg-orange-50/60 p-4">
                         <p class="text-sm text-orange-800 font-medium">Current Streak</p>
                         <p class="text-2xl font-bold text-orange-900 mt-1">{{ $currentStreak }} day{{ $currentStreak === 1 ? '' : 's' }} 🔥</p>
@@ -44,18 +44,11 @@
                         <p class="text-sm text-indigo-800 font-medium">Longest Streak</p>
                         <p class="text-2xl font-bold text-indigo-900 mt-1">{{ $longestStreak }} day{{ $longestStreak === 1 ? '' : 's' }}</p>
                     </article>
-                    <article class="rounded-md border border-emerald-100 bg-emerald-50/60 p-4">
-                        <p class="text-sm text-emerald-800 font-medium">Mood Pages</p>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            <a href="{{ route('mood.index') }}" class="inline-block bg-white border border-emerald-300 text-emerald-700 px-3 py-1 rounded text-xs hover:bg-emerald-50">Log Mood</a>
-                            <a href="{{ route('mood.dashboard') }}" class="inline-block bg-white border border-emerald-300 text-emerald-700 px-3 py-1 rounded text-xs hover:bg-emerald-50">Analytics</a>
-                        </div>
-                    </article>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 dark:bg-slate-900/90 dark:ring-1 dark:ring-slate-700/60">
                     <h3 class="text-lg font-semibold text-gray-800">Welcome Back</h3>
                     <p class="text-sm text-gray-600 mt-1">{{ $userName }}, this page is your quick check-in hub.</p>
 
@@ -78,7 +71,7 @@
                     @endif
                 </div>
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 dark:bg-slate-900/90 dark:ring-1 dark:ring-slate-700/60">
                     <h3 class="text-lg font-semibold text-gray-800">Quick Actions</h3>
                     <p class="text-sm text-gray-600 mt-1">Use dedicated pages for deeper tasks.</p>
 
@@ -95,7 +88,7 @@
                 </div>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6" x-data="{ menuOpen: false, filter: 'unlocked' }">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 dark:bg-slate-900/90 dark:ring-1 dark:ring-slate-700/60" x-data="{ menuOpen: false, filter: 'unlocked' }">
                 @php
                     $unlockedBadges = collect($achievementBadges)->where('unlocked', true)->values();
                     $lockedBadges = collect($achievementBadges)->where('unlocked', false)->values();
@@ -111,7 +104,7 @@
                         <button
                             type="button"
                             @click="menuOpen = !menuOpen"
-                            class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                         >
                             Achievements
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -122,20 +115,20 @@
                         <div
                             x-show="menuOpen"
                             @click.outside="menuOpen = false"
-                            class="absolute right-0 mt-2 w-56 rounded-md border border-gray-200 bg-white shadow-lg z-20"
+                            class="absolute right-0 mt-2 w-56 rounded-md border border-gray-200 bg-white shadow-lg z-20 dark:border-slate-700 dark:bg-slate-800"
                             style="display: none;"
                         >
                             <button
                                 type="button"
                                 @click="filter = 'unlocked'; menuOpen = false"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 dark:text-slate-200 dark:hover:bg-emerald-400/10"
                             >
                                 Unlocked ({{ $unlockedBadges->count() }})
                             </button>
                             <button
                                 type="button"
                                 @click="filter = 'locked'; menuOpen = false"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700"
                             >
                                 Locked ({{ $lockedBadges->count() }})
                             </button>

@@ -104,10 +104,12 @@ class UserManagementController extends Controller
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
-            'duration' => ['required', 'in:3d,1w,1m,3m,1y'],
+            'duration' => ['nullable', 'in:3d,1w,1m,3m,1y'],
         ]);
 
-        $suspendedUntil = $this->resolveRestrictionUntil($validated['duration']);
+        $duration = $validated['duration'] ?? '1w';
+
+        $suspendedUntil = $this->resolveRestrictionUntil($duration);
 
         $user->update([
             'suspended_at' => now(),
@@ -126,7 +128,7 @@ class UserManagementController extends Controller
             (int) $user->id,
             [
                 'reason' => $validated['reason'],
-                'duration' => $validated['duration'],
+                'duration' => $duration,
                 'suspended_until' => optional($suspendedUntil)->toDateTimeString(),
             ]
         );
@@ -141,7 +143,7 @@ class UserManagementController extends Controller
             [
                 'suspended_by' => $request->user()?->id,
                 'reason' => $validated['reason'],
-                'duration' => $validated['duration'],
+                'duration' => $duration,
                 'suspended_until' => optional($suspendedUntil)->toDateTimeString(),
             ]
         );

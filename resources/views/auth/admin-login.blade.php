@@ -1,10 +1,10 @@
 <x-guest-layout>
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">Admin Control Access</h1>
-        <p class="mt-1 text-sm text-gray-600">Restricted sign in for moderators and platform administrators.</p>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">Admin Control Access</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-slate-300">Restricted sign in for moderators and platform administrators.</p>
     </div>
 
-    <div class="mb-5 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+    <div class="mb-5 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
         This portal is monitored. Unauthorized access attempts are logged.
     </div>
 
@@ -30,27 +30,22 @@
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-amber-300 text-amber-600 shadow-sm focus:ring-amber-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 me-auto" href="{{ route('login') }}">
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 sm:me-auto dark:text-slate-300 dark:hover:text-amber-200 dark:focus:ring-offset-slate-900" href="{{ route('login') }}">
                 {{ __('Back to user login') }}
             </a>
 
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+            <div class="flex items-center gap-4 sm:gap-5">
+                @if (Route::has('password.request'))
+                    <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:text-slate-300 dark:hover:text-amber-200 dark:focus:ring-offset-slate-900" href="{{ route('password.request') }}">
+                        {{ __('Forgot your password?') }}
+                    </a>
+                @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Admin Log in') }}
-            </x-primary-button>
+                <x-primary-button>
+                    {{ __('Admin Log in') }}
+                </x-primary-button>
+            </div>
         </div>
     </form>
 </x-guest-layout>

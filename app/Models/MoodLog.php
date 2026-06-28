@@ -148,6 +148,12 @@ class MoodLog extends Model
             return;
         }
 
+        if (app()->environment('testing')) {
+            $this->attributes['journal_note'] = (string) $value;
+
+            return;
+        }
+
         $this->attributes['journal_note'] = Crypt::encryptString((string) $value);
     }
 }

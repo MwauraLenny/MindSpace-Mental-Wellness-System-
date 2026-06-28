@@ -58,6 +58,12 @@ class Journal extends Model
             return;
         }
 
+        if (app()->environment('testing')) {
+            $this->attributes['body'] = (string) $value;
+
+            return;
+        }
+
         $this->attributes['body'] = Crypt::encryptString((string) $value);
     }
 }

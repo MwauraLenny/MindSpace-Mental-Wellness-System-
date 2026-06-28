@@ -235,6 +235,7 @@ class RoutineController extends Controller
             ->with('user')
             ->withCount(['likes', 'comments', 'reactions'])
             ->where('status', 'active')
+            ->when(in_array($view, ['community', 'recommendations'], true) && $moodScope === 'match' && $moodFilter, fn ($q) => $q->where('mood_tag', $moodFilter))
             ->orderByDesc('upvote_count')
             ->orderByDesc('reactions_count')
             ->orderByDesc('comments_count')
@@ -655,12 +656,6 @@ class RoutineController extends Controller
 
     private function resolveAnonymousSelection(Request $request): bool
     {
-        $currentUser = $request->user();
-
-        if (! $currentUser) {
-            return false;
-        }
-
-        return $currentUser->anonymous_sharing && $request->boolean('is_anonymous');
+        return $request->boolean('is_anonymous');
     }
 }
