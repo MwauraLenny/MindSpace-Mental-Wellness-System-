@@ -8,14 +8,10 @@
     @endphp
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-20">
+        <div class="flex justify-between h-[4.5rem] max-[380px]:h-[4.25rem] sm:h-24">
             <div class="flex items-center gap-3 min-w-0">
-                <a href="{{ $isAdmin ? route('admin.dashboard') : route('dashboard') }}" class="shrink-0 inline-flex items-center gap-3 rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 shadow-sm">
-                    <x-application-logo class="h-12 w-auto" />
-                    <span class="hidden sm:block leading-tight">
-                        <span class="block text-lg font-bold tracking-tight text-stone-800">MindSpace</span>
-                        <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">Mental Wellness</span>
-                    </span>
+                <a href="{{ $isAdmin ? route('admin.dashboard') : route('dashboard') }}" class="shrink-0 inline-flex items-center">
+                    <x-application-logo class="h-9 w-auto max-w-[6rem] max-[380px]:h-8 max-[380px]:max-w-[5rem] sm:h-12 sm:max-w-[8.5rem] lg:h-14 lg:max-w-[10rem]" />
                 </a>
 
                 <div class="hidden sm:flex sm:items-center sm:space-x-2 sm:ms-4">
