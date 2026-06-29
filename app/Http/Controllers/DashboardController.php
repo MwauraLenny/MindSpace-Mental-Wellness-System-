@@ -212,12 +212,13 @@ class DashboardController extends Controller
 
     public function admin(): View
     {
-        $totalUsers = DB::table('users')->count();
+        $totalUsers = DB::table('users')->where('role', '!=', 'admin')->count();
         $totalRoutines = DB::table('routines')->count();
         $totalReports = DB::table('reports')->count();
 
         $communityActivity = [
             'newUsers7d' => User::query()
+                ->where('role', '!=', 'admin')
                 ->where('created_at', '>=', Carbon::now()->subDays(7)->startOfDay())
                 ->count(),
             'newRoutines7d' => Routine::query()

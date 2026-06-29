@@ -28,9 +28,13 @@ class EnsureUserIsNotSuspended
             return $next($request);
         }
 
-        $periodMessage = $user->suspended_until
-            ? ' Suspension ends '.$user->suspended_until->diffForHumans().'.'
-            : ' Suspension period is currently open-ended.';
+        $reasonMessage = $user->suspension_reason
+            ? ' Reason: '.$user->suspension_reason.'.'
+            : ' Reason: not specified by administrator.';
+
+        $durationMessage = $user->suspended_until
+            ? ' Remaining suspension time: '.$user->suspended_until->diffForHumans().'. Ends on '.$user->suspended_until->format('M d, Y h:i A').'.'
+            : ' Suspension duration: open-ended until an administrator reactivates your account.';
 
         if ($request->hasSession()) {
             UserSession::endBySessionId($request->session()->getId());
@@ -42,6 +46,6 @@ class EnsureUserIsNotSuspended
 
         return redirect()
             ->route('login')
-            ->with('error', 'Your account is currently suspended.'.$periodMessage.' Please contact support if you believe this is a mistake.');
+            ->with('error', 'Your account is currently suspended.'.$reasonMessage.$durationMessage);
     }
 }

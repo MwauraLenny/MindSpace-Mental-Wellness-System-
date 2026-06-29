@@ -38,45 +38,32 @@ class AdminUserManagementTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_update_another_users_role(): void
+    public function test_admin_user_management_view_excludes_admin_accounts(): void
     {
         /** @var User $admin */
         $admin = User::factory()->createOne([
             'role' => 'admin',
         ]);
 
-        /** @var User $targetUser */
-        $targetUser = User::factory()->createOne([
+        /** @var User $anotherAdmin */
+        $anotherAdmin = User::factory()->createOne([
+            'role' => 'admin',
+            'email' => 'another-admin@example.com',
+        ]);
+
+        /** @var User $regularUser */
+        $regularUser = User::factory()->createOne([
             'role' => 'user',
+            'email' => 'regular-user@example.com',
         ]);
 
         $response = $this
             ->actingAs($admin)
-            ->patch(route('admin.users.role.update', $targetUser), [
-                'role' => 'admin',
-            ]);
+            ->get(route('admin.users.index'));
 
-        $response->assertSessionHasNoErrors();
-        $response->assertRedirect();
-
-        $this->assertSame('admin', $targetUser->fresh()->role);
-    }
-
-    public function test_admin_cannot_update_own_role(): void
-    {
-        /** @var User $admin */
-        $admin = User::factory()->createOne([
-            'role' => 'admin',
-        ]);
-
-        $response = $this
-            ->actingAs($admin)
-            ->patch(route('admin.users.role.update', $admin), [
-                'role' => 'user',
-            ]);
-
-        $response->assertRedirect();
-        $this->assertSame('admin', $admin->fresh()->role);
+        $response->assertOk();
+        $response->assertDontSee($anotherAdmin->email);
+        $response->assertSee($regularUser->email);
     }
 
     public function test_admin_can_suspend_and_unsuspend_user(): void

@@ -33,12 +33,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'admin'])->name('admin.analytics');
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
-    Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role.update');
     Route::get('/users/{user}/activity', [UserManagementController::class, 'activity'])->name('admin.users.activity');
     Route::patch('/users/{user}/suspend', [UserManagementController::class, 'suspend'])->name('admin.users.suspend');
     Route::patch('/users/{user}/unsuspend', [UserManagementController::class, 'unsuspend'])->name('admin.users.unsuspend');
-    Route::patch('/users/{user}/ban', [UserManagementController::class, 'ban'])->name('admin.users.ban');
-    Route::patch('/users/{user}/unban', [UserManagementController::class, 'unban'])->name('admin.users.unban');
     Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
     Route::get('/reports', [ReportController::class, 'admin'])->name('admin.reports.index');
@@ -67,10 +64,9 @@ Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');
     Route::post('/routines/{id}/save', [App\Http\Controllers\RoutineController::class, 'save'])->name('routines.save');
-    Route::post('/routines/{id}/follow', [App\Http\Controllers\RoutineController::class, 'followContributor'])->name('routines.follow');
-    Route::delete('/routines/{id}/follow', [App\Http\Controllers\RoutineController::class, 'unfollowContributor'])->name('routines.unfollow');
     Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');
+    Route::post('/routines/{id}/comments/{commentId}/react', [App\Http\Controllers\RoutineController::class, 'reactToComment'])->name('routines.comments.react');
     Route::delete('/routines/{id}/comments/{commentId}', [App\Http\Controllers\RoutineController::class, 'destroyComment'])->name('routines.comments.destroy');
 });
 Route::middleware(['auth', 'not_admin'])->group(function () {

@@ -29,7 +29,6 @@
                 <x-text-input id="password" class="block w-full pe-12"
                                 type="password"
                                 name="password"
-                                maxlength="20"
                                 required autocomplete="new-password" />
             </div>
 
@@ -43,7 +42,7 @@
             <div class="relative mt-1">
                 <x-text-input id="password_confirmation" class="block w-full pe-12"
                                 type="password"
-                                name="password_confirmation" maxlength="20" required autocomplete="new-password" />
+                                name="password_confirmation" required autocomplete="new-password" />
             </div>
 
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />

@@ -204,7 +204,11 @@ class AnalyticsController extends Controller
             ->map(fn (int $i) => Carbon::now()->subDays(29 - $i)->format('Y-m-d'))
             ->values();
 
-        $totalUsers = (int) DB::table('users')->count();
+        $nonAdminUserIds = DB::table('users')
+            ->where('role', '!=', 'admin')
+            ->pluck('id');
+
+        $totalUsers = (int) $nonAdminUserIds->count();
 
         $activeUserIds = collect()
             ->merge(DB::table('mood_logs')->where('logged_at', '>=', $windowStart)->pluck('user_id'))
@@ -217,7 +221,9 @@ class AnalyticsController extends Controller
             ->unique()
             ->values();
 
-        $activeUsers = (int) $activeUserIds->count();
+        $activeUsers = (int) $activeUserIds
+            ->intersect($nonAdminUserIds)
+            ->count();
 
         $engagedUserIds = collect()
             ->merge(DB::table('routine_likes')->where('created_at', '>=', $windowStart)->pluck('user_id'))
@@ -228,6 +234,10 @@ class AnalyticsController extends Controller
                 ->where('commentable_type', '=', Routine::class)
                 ->pluck('user_id'))
             ->unique()
+            ->values();
+
+        $engagedUserIds = $engagedUserIds
+            ->intersect($nonAdminUserIds)
             ->values();
 
         $engagementRate = $totalUsers > 0

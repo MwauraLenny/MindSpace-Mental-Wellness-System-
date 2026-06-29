@@ -24,6 +24,7 @@ class UserManagementController extends Controller
     public function index(): View
     {
         $users = User::query()
+            ->where('role', '!=', 'admin')
             ->orderBy('name', 'asc')
             ->get()
             ->map(function (User $user) {
@@ -55,45 +56,6 @@ class UserManagementController extends Controller
         return view('admin.users.index', [
             'users' => $users,
         ]);
-    }
-
-    public function updateRole(Request $request, User $user): RedirectResponse
-    {
-        $validated = $request->validate([
-            'role' => ['required', 'in:user,admin'],
-        ]);
-
-        if ($request->user()?->id === $user->id) {
-            return back()->with('error', 'You cannot change your own role.');
-        }
-
-        $user->update([
-            'role' => $validated['role'],
-        ]);
-
-        $this->logAudit(
-            'admin.user.role_updated',
-            User::class,
-            (int) $user->id,
-            [
-                'new_role' => $validated['role'],
-            ]
-        );
-
-        /** @var NotificationService $notificationService */
-        $notificationService = app(NotificationService::class);
-        $notificationService->createForUser(
-            (int) $user->id,
-            'admin_notification',
-            'Admin updated your account',
-            'Your account role was updated to '.$validated['role'].'.',
-            [
-                'new_role' => $validated['role'],
-                'updated_by' => $request->user()?->id,
-            ]
-        );
-
-        return back()->with('success', 'User role updated successfully.');
     }
 
     public function suspend(Request $request, User $user): RedirectResponse
@@ -210,86 +172,6 @@ class UserManagementController extends Controller
         return back()->with('success', 'User deleted successfully.');
     }
 
-    public function ban(Request $request, User $user): RedirectResponse
-    {
-        if ($request->user()?->id === $user->id) {
-            return back()->with('error', 'You cannot ban your own account.');
-        }
-
-        $validated = $request->validate([
-            'reason' => ['required', 'string', 'max:500'],
-            'duration' => ['required', 'in:3d,1w,1m,3m,1y'],
-        ]);
-
-        $bannedUntil = $this->resolveRestrictionUntil($validated['duration']);
-
-        $user->update([
-            'banned_at' => now(),
-            'banned_until' => $bannedUntil,
-            'ban_reason' => $validated['reason'],
-            'suspended_at' => now(),
-            'suspended_until' => $bannedUntil,
-            'suspension_reason' => $validated['reason'],
-        ]);
-
-        UserSession::endAllForUser((int) $user->id);
-        DB::table('sessions')
-            ->where('user_id', $user->id)
-            ->delete();
-
-        $this->logAudit(
-            'admin.user.banned',
-            User::class,
-            (int) $user->id,
-            [
-                'reason' => $validated['reason'],
-                'duration' => $validated['duration'],
-                'banned_until' => optional($bannedUntil)->toDateTimeString(),
-            ]
-        );
-
-        /** @var NotificationService $notificationService */
-        $notificationService = app(NotificationService::class);
-        $notificationService->createForUser(
-            (int) $user->id,
-            'admin_notification',
-            'Account banned',
-            'Your account has been banned by an administrator until '.($bannedUntil?->format('M d, Y h:i A') ?? 'further notice').'.',
-            [
-                'banned_by' => $request->user()?->id,
-                'reason' => $validated['reason'],
-                'duration' => $validated['duration'],
-                'banned_until' => optional($bannedUntil)->toDateTimeString(),
-            ]
-        );
-
-        return back()->with('success', 'User banned successfully.');
-    }
-
-    public function unban(Request $request, User $user): RedirectResponse
-    {
-        if (! $user->banned_at) {
-            return back()->with('success', 'User account is not banned.');
-        }
-
-        $user->update([
-            'banned_at' => null,
-            'banned_until' => null,
-            'ban_reason' => null,
-            'suspended_at' => null,
-            'suspended_until' => null,
-            'suspension_reason' => null,
-        ]);
-
-        $this->logAudit(
-            'admin.user.unbanned',
-            User::class,
-            (int) $user->id,
-            []
-        );
-
-        return back()->with('success', 'User unbanned successfully.');
-    }
 
     public function activity(User $user): View
     {

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'reportable_type' => 'required|string|in:routine,comment',
@@ -46,12 +47,24 @@ class ReportController extends Controller
                 ->first();
 
         if (! $reportable) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'The selected content could not be reported because it is unavailable.',
+                ], 404);
+            }
+
             return back()->with('error', 'The selected content could not be reported because it is unavailable.');
         }
 
         $ownerId = (int) ($reportable->user_id ?? 0);
 
         if ($ownerId === (int) Auth::id()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'You cannot report your own content.',
+                ], 422);
+            }
+
             return back()->with('error', 'You cannot report your own content.');
         }
 
@@ -63,6 +76,12 @@ class ReportController extends Controller
             ->first();
 
         if ($existingPendingReport) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'This content has already been reported and is awaiting moderation.',
+                ]);
+            }
+
             return back()->with('success', 'This content has already been reported and is awaiting moderation.');
         }
 
@@ -100,6 +119,13 @@ class ReportController extends Controller
                     'report_reason' => $validated['reason'],
                 ]
             );
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Thanks for reporting. Our moderation team will review this content.',
+                'report_id' => (int) $report->id,
+            ]);
         }
 
         return back()->with('success', 'Thanks for reporting. Our moderation team will review this content.');
@@ -394,7 +420,11 @@ class ReportController extends Controller
     {
         $activeWindowStart = Carbon::now()->subDays(30)->startOfDay();
 
-        $totalUsers = DB::table('users')->count();
+        $nonAdminUserIds = DB::table('users')
+            ->where('role', '!=', 'admin')
+            ->pluck('id');
+
+        $totalUsers = $nonAdminUserIds->count();
 
         $activeUserIds = collect()
             ->merge(MoodLog::query()->where('logged_at', '>=', $activeWindowStart)->pluck('user_id'))
@@ -405,6 +435,10 @@ class ReportController extends Controller
             ->merge(SavedRoutine::query()->where('created_at', '>=', $activeWindowStart)->pluck('user_id'))
             ->merge(RoutineReaction::query()->where('created_at', '>=', $activeWindowStart)->pluck('user_id'))
             ->unique()
+            ->values();
+
+        $activeUserIds = $activeUserIds
+            ->intersect($nonAdminUserIds)
             ->values();
 
         $activeUsers = $activeUserIds->count();

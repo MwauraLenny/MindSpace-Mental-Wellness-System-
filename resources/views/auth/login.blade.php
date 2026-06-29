@@ -16,6 +16,12 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
+    @if (session('error'))
+        <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <form method="POST" action="{{ $isAdminLogin ? route('admin.login.submit') : route('login') }}">
         @csrf
 
@@ -38,19 +44,10 @@
                 <x-text-input id="password" class="block w-full pe-12"
                                 type="password"
                                 name="password"
-                                maxlength="20"
                                 required autocomplete="current-password" />
             </div>
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-amber-300 text-amber-600 shadow-sm focus:ring-amber-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">Remember me</span>
-            </label>
         </div>
 
         <div class="flex items-center justify-end mt-4">

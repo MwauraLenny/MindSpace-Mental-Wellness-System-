@@ -14,8 +14,10 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_can_add_comment_to_routine(): void
     {
-        $owner = User::factory()->create();
-        $user = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -42,8 +44,10 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_can_delete_own_comment(): void
     {
-        $owner = User::factory()->create();
-        $user = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -69,9 +73,12 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_can_reply_to_a_top_level_comment(): void
     {
-        $owner = User::factory()->create();
-        $author = User::factory()->create();
-        $replier = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $author */
+        $author = User::factory()->createOne();
+        /** @var User $replier */
+        $replier = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -107,8 +114,10 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_cannot_reply_using_comment_from_another_routine(): void
     {
-        $owner = User::factory()->create();
-        $user = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $routineA = Routine::create([
             'user_id' => $owner->id,
@@ -150,9 +159,12 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_cannot_delete_other_users_comment(): void
     {
-        $owner = User::factory()->create();
-        $author = User::factory()->create();
-        $intruder = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $author */
+        $author = User::factory()->createOne();
+        /** @var User $intruder */
+        $intruder = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -179,7 +191,8 @@ class RoutineCommentTest extends TestCase
 
     public function test_guest_cannot_comment_or_delete_comment(): void
     {
-        $owner = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -203,12 +216,127 @@ class RoutineCommentTest extends TestCase
 
         $this->delete('/routines/'.$routine->id.'/comments/'.$comment->id)
             ->assertRedirect('/login');
+
+        $this->post('/routines/'.$routine->id.'/comments/'.$comment->id.'/react', [
+            'reaction' => 'helpful',
+        ])->assertRedirect('/login');
+    }
+
+    public function test_user_can_toggle_comment_reaction_by_clicking_same_reaction_twice(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $reactor */
+        $reactor = User::factory()->createOne();
+
+        $routine = Routine::create([
+            'user_id' => $owner->id,
+            'title' => 'Routine for reaction toggle',
+            'body' => 'Routine body.',
+            'mood_tag' => 3,
+            'status' => 'active',
+        ]);
+
+        $comment = Comment::create([
+            'user_id' => $owner->id,
+            'commentable_type' => Routine::class,
+            'commentable_id' => $routine->id,
+            'body' => 'Top-level comment',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($reactor)
+            ->post('/routines/'.$routine->id.'/comments/'.$comment->id.'/react', [
+                'reaction' => 'helpful',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('reactions', [
+            'user_id' => $reactor->id,
+            'reactable_type' => Comment::class,
+            'reactable_id' => $comment->id,
+            'reaction' => 'helpful',
+        ]);
+
+        $this->actingAs($reactor)
+            ->post('/routines/'.$routine->id.'/comments/'.$comment->id.'/react', [
+                'reaction' => 'helpful',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('reactions', [
+            'user_id' => $reactor->id,
+            'reactable_type' => Comment::class,
+            'reactable_id' => $comment->id,
+            'reaction' => 'helpful',
+        ]);
+    }
+
+    public function test_user_can_toggle_reply_reaction_by_clicking_same_reaction_twice(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $reactor */
+        $reactor = User::factory()->createOne();
+
+        $routine = Routine::create([
+            'user_id' => $owner->id,
+            'title' => 'Routine for reply reaction toggle',
+            'body' => 'Routine body.',
+            'mood_tag' => 4,
+            'status' => 'active',
+        ]);
+
+        $comment = Comment::create([
+            'user_id' => $owner->id,
+            'commentable_type' => Routine::class,
+            'commentable_id' => $routine->id,
+            'body' => 'Parent comment',
+            'status' => 'active',
+        ]);
+
+        $reply = Comment::create([
+            'user_id' => $owner->id,
+            'commentable_type' => Routine::class,
+            'commentable_id' => $routine->id,
+            'parent_id' => $comment->id,
+            'body' => 'Reply comment',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($reactor)
+            ->post('/routines/'.$routine->id.'/comments/'.$reply->id.'/react', [
+                'reaction' => 'inspiring',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('reactions', [
+            'user_id' => $reactor->id,
+            'reactable_type' => Comment::class,
+            'reactable_id' => $reply->id,
+            'reaction' => 'inspiring',
+        ]);
+
+        $this->actingAs($reactor)
+            ->post('/routines/'.$routine->id.'/comments/'.$reply->id.'/react', [
+                'reaction' => 'inspiring',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('reactions', [
+            'user_id' => $reactor->id,
+            'reactable_type' => Comment::class,
+            'reactable_id' => $reply->id,
+            'reaction' => 'inspiring',
+        ]);
     }
 
     public function test_user_can_comment_anonymously(): void
     {
-        $owner = User::factory()->create();
-        $user = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -223,7 +351,7 @@ class RoutineCommentTest extends TestCase
             'is_anonymous' => true,
         ])->assertRedirect();
 
-        $comment = Comment::where('commentable_id', $routine->id)
+        $comment = Comment::query()->where('commentable_id', $routine->id)
             ->where('body', 'Posting this anonymously.')
             ->firstOrFail();
 
@@ -236,9 +364,12 @@ class RoutineCommentTest extends TestCase
 
     public function test_user_can_reply_anonymously(): void
     {
-        $owner = User::factory()->create();
-        $author = User::factory()->create();
-        $replier = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $author */
+        $author = User::factory()->createOne();
+        /** @var User $replier */
+        $replier = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -262,7 +393,7 @@ class RoutineCommentTest extends TestCase
             'is_anonymous' => true,
         ])->assertRedirect();
 
-        $reply = Comment::where('parent_id', $parent->id)
+        $reply = Comment::query()->where('parent_id', $parent->id)
             ->where('body', 'Anonymous reply text')
             ->firstOrFail();
 

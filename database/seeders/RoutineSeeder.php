@@ -11,55 +11,81 @@ class RoutineSeeder extends Seeder
     public function run(): void
     {
         $users = User::query()->get(['id']);
+
+        if ($users->isEmpty()) {
+            return;
+        }
+
         $now = now();
 
         $categoryMap = DB::table('routine_categories')
             ->pluck('id', 'slug');
 
-        $routineTemplates = [
+        $durations = ['7 minutes', '10 minutes', '12 minutes', '15 minutes', '20 minutes', '25 minutes', '30 minutes', '35 minutes'];
+
+        $actionByMood = [
             1 => [
-                ['body' => 'When things feel very heavy, I do :duration of box breathing, then write three grounding observations from my room.', 'category_slug' => 'mindfulness'],
-                ['body' => 'I take a warm shower, sip water slowly, and do a :duration phone-free reset before checking messages.', 'category_slug' => 'sleep-hygiene'],
-                ['body' => 'I dim lights and follow a :duration guided breathing session to reduce overwhelm before bed.', 'category_slug' => 'mindfulness'],
+                'body' => 'do box breathing and write three grounding observations',
+                'aftercare' => 'then silence notifications for one hour',
+                'prefix' => 'Steadying',
             ],
             2 => [
-                ['body' => 'I go for a gentle :duration walk with no headphones, then journal one thing that felt manageable.', 'category_slug' => 'movement'],
-                ['body' => 'I do a :duration stretch flow and prepare tomorrow\'s to-do list with only three realistic priorities.', 'category_slug' => 'movement'],
-                ['body' => 'I stop caffeine after lunch and start a :duration wind-down routine with a calm playlist.', 'category_slug' => 'sleep-hygiene'],
+                'body' => 'take a gentle walk and stretch shoulders and jaw',
+                'aftercare' => 'then set one realistic priority for today',
+                'prefix' => 'Recovery',
             ],
             3 => [
-                ['body' => 'I use a :duration focus block, then take a short sunlight break and drink water before the next task.', 'category_slug' => 'movement'],
-                ['body' => 'I do :duration of mindful breathing, then clean one small space to reduce mental clutter.', 'category_slug' => 'mindfulness'],
-                ['body' => 'I check in with a friend for :duration and share one win and one challenge from the day.', 'category_slug' => 'social-connection'],
+                'body' => 'run a focused work block and hydrate between tasks',
+                'aftercare' => 'then reset my desk to reduce cognitive clutter',
+                'prefix' => 'Balance',
             ],
             4 => [
-                ['body' => 'I schedule a :duration walk-and-talk with a friend and finish with a gratitude voice note.', 'category_slug' => 'social-connection'],
-                ['body' => 'I do a :duration strength workout, then meal prep for tomorrow to keep momentum.', 'category_slug' => 'movement'],
-                ['body' => 'I set a :duration evening reflection ritual: low lights, no social apps, and journaling.', 'category_slug' => 'sleep-hygiene'],
+                'body' => 'channel energy into exercise and check in with a friend',
+                'aftercare' => 'then prepare tomorrow\'s schedule before bed',
+                'prefix' => 'Momentum',
             ],
             5 => [
-                ['body' => 'On high-energy days I do :duration of deep work first, then reward myself with outdoor time.', 'category_slug' => 'movement'],
-                ['body' => 'I use a :duration creative sprint, then document what worked so I can repeat it on low days.', 'category_slug' => 'mindfulness'],
-                ['body' => 'I share a :duration encouragement call with someone and end the day with a sleep-protecting routine.', 'category_slug' => 'social-connection'],
+                'body' => 'start with deep work and follow with intentional recovery',
+                'aftercare' => 'then share one encouragement message in community',
+                'prefix' => 'Peak',
             ],
         ];
 
-        $durations = ['10 minutes', '15 minutes', '20 minutes', '25 minutes', '30 minutes'];
+        $categoryRotation = [
+            'exercise-routines',
+            'study-habits',
+            'meditation-routines',
+            'social-connection',
+            'music-recommendations',
+            'hobbies',
+            'relaxation-techniques',
+        ];
 
-        foreach ($users as $userIndex => $user) {
-            foreach (range(1, 5) as $moodTag) {
-                $templates = $routineTemplates[$moodTag];
-                $template = $templates[($userIndex + $moodTag) % count($templates)];
-                $duration = $durations[($user->id + $moodTag) % count($durations)];
-                $body = str_replace(':duration', $duration, $template['body']);
+        foreach (range(1, 5) as $moodTag) {
+            $moodMeta = $actionByMood[$moodTag];
+
+            foreach (range(1, 30) as $index) {
+                $user = $users[($index + $moodTag - 2) % $users->count()];
+                $duration = $durations[($index + $moodTag - 1) % count($durations)];
+                $categorySlug = $categoryRotation[($index + $moodTag - 1) % count($categoryRotation)];
+
+                $title = sprintf('%s Mood %d Routine %02d', $moodMeta['prefix'], $moodTag, $index);
+                $body = sprintf(
+                    'For mood score %d, I spend %s to %s, %s.',
+                    $moodTag,
+                    $duration,
+                    $moodMeta['body'],
+                    $moodMeta['aftercare']
+                );
 
                 DB::table('routines')->updateOrInsert(
                     [
-                        'user_id' => $user->id,
-                        'mood_tag' => $moodTag,
+                        'title' => $title,
                     ],
                     [
-                        'routine_category_id' => $categoryMap[$template['category_slug']] ?? null,
+                        'user_id' => $user->id,
+                        'mood_tag' => $moodTag,
+                        'routine_category_id' => $categoryMap[$categorySlug] ?? null,
                         'body' => $body,
                         'is_anonymous' => false,
                         'upvote_count' => 0,

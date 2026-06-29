@@ -241,13 +241,14 @@
                             </p>
                             <p class="mt-2 text-gray-800">{{ $routine->body }}</p>
                         </div>
-                        <span class="text-sm text-gray-400 ml-4">{{ $routine->likes_count }} ❤</span>
+                        <span class="text-sm text-gray-400 ml-4" data-routine-like-count="{{ $routine->id }}">{{ $routine->likes_count }} ❤</span>
                     </div>
 
                     <div class="mt-3 flex flex-wrap gap-2">
-                        <form method="POST" action="{{ route('routines.upvote', $routine->id) }}">
+                        <form method="POST" action="{{ route('routines.upvote', $routine->id) }}" data-async="like" data-routine-id="{{ $routine->id }}">
                             @csrf
                             <button type="submit"
+                                data-like-button="{{ $routine->id }}"
                                 class="text-sm px-3 py-1 rounded {{ isset($likedRoutineIds[$routine->id]) ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700' }} hover:bg-indigo-200">
                                 {{ isset($likedRoutineIds[$routine->id]) ? '❤ Liked' : '❤ Like' }}
                             </button>
@@ -261,29 +262,10 @@
                             </button>
                         </form>
 
-                        @if((int) $routine->user_id !== (int) Auth::id())
-                            @if(isset($followedUserIds[$routine->user_id]))
-                                <form method="POST" action="{{ route('routines.unfollow', $routine->id) }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-sm px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">
-                                        Following ({{ $followerCountByRoutine[$routine->id] ?? 0 }})
-                                    </button>
-                                </form>
-                            @else
-                                <form method="POST" action="{{ route('routines.follow', $routine->id) }}">
-                                    @csrf
-                                    <button type="submit" class="text-sm px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                        Follow contributor ({{ $followerCountByRoutine[$routine->id] ?? 0 }})
-                                    </button>
-                                </form>
-                            @endif
-                        @endif
-
                         @if($routine->user_id !== Auth::id())
                             <details class="text-sm">
                                 <summary class="cursor-pointer px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">Report routine</summary>
-                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2">
+                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
                                     @csrf
                                     <input type="hidden" name="reportable_type" value="routine">
                                     <input type="hidden" name="reportable_id" value="{{ $routine->id }}">
@@ -384,6 +366,24 @@
                                     </div>
 
                                     <div class="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                                        <div class="inline-flex items-center gap-2">
+                                            @foreach($commentReactionMeta as $reaction => $meta)
+                                                <form method="POST" action="{{ route('routines.comments.react', [$routine->id, $comment->id]) }}" data-async="comment-reaction" data-comment-id="{{ $comment->id }}">
+                                                    @csrf
+                                                    <input type="hidden" name="reaction" value="{{ $reaction }}">
+                                                    <button
+                                                        type="submit"
+                                                        data-comment-reaction-button="{{ $comment->id }}"
+                                                        data-reaction="{{ $reaction }}"
+                                                        class="rounded border px-2 py-1 {{ (optional($myCommentReactions[$comment->id] ?? null)->reaction === $reaction) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600' }}"
+                                                    >
+                                                        {{ $meta['emoji'] }} {{ $meta['label'] }}
+                                                        <span class="ml-1 text-gray-500" data-comment-reaction-count="{{ $comment->id }}" data-reaction="{{ $reaction }}">{{ $comment->reactions->where('reaction', $reaction)->count() }}</span>
+                                                    </button>
+                                                </form>
+                                            @endforeach
+                                        </div>
+
                                         <button
                                             type="button"
                                             class="text-indigo-600 hover:text-indigo-700"
@@ -395,7 +395,7 @@
                                         @if($comment->user_id !== Auth::id())
                                             <details>
                                                 <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
-                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2 min-w-64">
+                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2 min-w-64" data-async="report">
                                                     @csrf
                                                     <input type="hidden" name="reportable_type" value="comment">
                                                     <input type="hidden" name="reportable_id" value="{{ $comment->id }}">
@@ -466,6 +466,24 @@
                                                             {{ $reply->display_author }} · {{ optional($reply->created_at)->diffForHumans() }}
                                                         </p>
                                                         <p class="text-sm text-gray-700 mt-1">{{ $reply->body }}</p>
+
+                                                        <div class="mt-2 inline-flex items-center gap-2 text-xs">
+                                                            @foreach($commentReactionMeta as $reaction => $meta)
+                                                                <form method="POST" action="{{ route('routines.comments.react', [$routine->id, $reply->id]) }}" data-async="comment-reaction" data-comment-id="{{ $reply->id }}">
+                                                                    @csrf
+                                                                    <input type="hidden" name="reaction" value="{{ $reaction }}">
+                                                                    <button
+                                                                        type="submit"
+                                                                        data-comment-reaction-button="{{ $reply->id }}"
+                                                                        data-reaction="{{ $reaction }}"
+                                                                        class="rounded border px-2 py-1 {{ (optional($myCommentReactions[$reply->id] ?? null)->reaction === $reaction) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600' }}"
+                                                                    >
+                                                                        {{ $meta['emoji'] }} {{ $meta['label'] }}
+                                                                        <span class="ml-1 text-gray-500" data-comment-reaction-count="{{ $reply->id }}" data-reaction="{{ $reaction }}">{{ $reply->reactions->where('reaction', $reaction)->count() }}</span>
+                                                                    </button>
+                                                                </form>
+                                                            @endforeach
+                                                        </div>
                                                     </div>
 
                                                     @if($reply->user_id === Auth::id())
@@ -482,7 +500,7 @@
                                                 @if($reply->user_id !== Auth::id())
                                                     <details class="mt-2 text-xs">
                                                         <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
-                                                        <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2">
+                                                        <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
                                                             @csrf
                                                             <input type="hidden" name="reportable_type" value="comment">
                                                             <input type="hidden" name="reportable_id" value="{{ $reply->id }}">
@@ -526,6 +544,116 @@
     </div>
 
     <script>
+        const applyCommentReactionStyles = (button, isActive) => {
+            if (isActive) {
+                button.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
+                button.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                return;
+            }
+
+            button.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+            button.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
+        };
+
+        const updateRoutineLikeUi = (routineId, liked, likesCount) => {
+            const likeButton = document.querySelector(`[data-like-button="${routineId}"]`);
+            const likeCount = document.querySelector(`[data-routine-like-count="${routineId}"]`);
+
+            if (likeButton) {
+                likeButton.textContent = liked ? '❤ Liked' : '❤ Like';
+                likeButton.classList.remove('bg-red-100', 'text-red-700', 'bg-indigo-100', 'text-indigo-700');
+
+                if (liked) {
+                    likeButton.classList.add('bg-red-100', 'text-red-700');
+                } else {
+                    likeButton.classList.add('bg-indigo-100', 'text-indigo-700');
+                }
+            }
+
+            if (likeCount) {
+                likeCount.textContent = `${likesCount} ❤`;
+            }
+        };
+
+        const updateCommentReactionUi = (commentId, activeReaction, counts) => {
+            const buttons = document.querySelectorAll(`[data-comment-reaction-button="${commentId}"]`);
+            buttons.forEach((button) => {
+                const reaction = button.getAttribute('data-reaction');
+                applyCommentReactionStyles(button, reaction === activeReaction);
+            });
+
+            Object.entries(counts).forEach(([reaction, total]) => {
+                const countNode = document.querySelector(`[data-comment-reaction-count="${commentId}"][data-reaction="${reaction}"]`);
+                if (countNode) {
+                    countNode.textContent = String(total);
+                }
+            });
+        };
+
+        const submitAsyncForm = async (form) => {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: form.method.toUpperCase(),
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload.message || 'Action failed.');
+            }
+
+            return payload;
+        };
+
+        document.querySelectorAll('form[data-async="like"]').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                try {
+                    const payload = await submitAsyncForm(form);
+                    updateRoutineLikeUi(payload.routine_id, payload.liked, payload.likes_count);
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        document.querySelectorAll('form[data-async="comment-reaction"]').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                try {
+                    const payload = await submitAsyncForm(form);
+                    updateCommentReactionUi(payload.comment_id, payload.active_reaction, payload.counts || {});
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        document.querySelectorAll('form[data-async="report"]').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                try {
+                    await submitAsyncForm(form);
+                    form.reset();
+
+                    const details = form.closest('details');
+                    if (details) {
+                        details.open = false;
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+
         document.querySelectorAll('[data-reply-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
                 const id = button.getAttribute('data-reply-toggle');

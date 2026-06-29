@@ -16,7 +16,8 @@ class NotificationSystemTest extends TestCase
 
     public function test_user_receives_mood_and_wellness_reminders_when_no_recent_logs(): void
     {
-        $user = User::factory()->create();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $this->actingAs($user)->get('/dashboard')->assertOk();
 
@@ -35,8 +36,10 @@ class NotificationSystemTest extends TestCase
 
     public function test_user_receives_recommendation_notification_when_new_matching_routine_is_shared(): void
     {
-        $targetUser = User::factory()->create();
-        $sharer = User::factory()->create();
+        /** @var User $targetUser */
+        $targetUser = User::factory()->createOne();
+        /** @var User $sharer */
+        $sharer = User::factory()->createOne();
 
         MoodLog::create([
             'user_id' => $targetUser->id,
@@ -68,8 +71,10 @@ class NotificationSystemTest extends TestCase
 
     public function test_user_receives_community_interaction_notification_when_routine_is_liked(): void
     {
-        $owner = User::factory()->create();
-        $liker = User::factory()->create();
+        /** @var User $owner */
+        $owner = User::factory()->createOne();
+        /** @var User $liker */
+        $liker = User::factory()->createOne();
 
         $routine = Routine::create([
             'user_id' => $owner->id,
@@ -90,23 +95,29 @@ class NotificationSystemTest extends TestCase
 
     public function test_admin_action_creates_admin_notification_for_target_user(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $user = User::factory()->create(['role' => 'user']);
+        /** @var User $admin */
+        $admin = User::factory()->createOne(['role' => 'admin']);
+        /** @var User $user */
+        $user = User::factory()->createOne(['role' => 'user']);
 
         $this->actingAs($admin)
-            ->patch('/admin/users/'.$user->id.'/role', ['role' => 'admin'])
+            ->patch('/admin/users/'.$user->id.'/suspend', [
+                'reason' => 'Policy violation',
+                'duration' => '1w',
+            ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('notifications', [
             'user_id' => $user->id,
             'type' => 'admin_notification',
-            'title' => 'Admin updated your account',
+            'title' => 'Account suspended',
         ]);
     }
 
     public function test_user_can_open_notifications_page_and_mark_notification_as_read(): void
     {
-        $user = User::factory()->create();
+        /** @var User $user */
+        $user = User::factory()->createOne();
 
         $notification = Notification::create([
             'user_id' => $user->id,

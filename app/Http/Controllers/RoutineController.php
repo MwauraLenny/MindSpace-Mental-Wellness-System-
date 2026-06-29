@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Routine;
 use App\Models\Comment;
 use App\Models\MoodLog;
+use App\Models\Reaction;
 use App\Models\RoutineCategory;
 use App\Models\RoutineLike;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
-use App\Models\UserFollow;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,6 +102,11 @@ class RoutineController extends Controller
         ],
     ];
 
+    private const COMMENT_REACTION_META = [
+        'helpful' => ['emoji' => '❤️', 'label' => 'Helpful'],
+        'inspiring' => ['emoji' => '✨', 'label' => 'Inspiring'],
+    ];
+
     // Show community feed filtered by user's latest mood
     public function index(Request $request)
     {
@@ -153,8 +158,9 @@ class RoutineController extends Controller
                 'comments' => fn ($query) => $query
                     ->whereNull('parent_id')
                     ->with([
+                        'reactions',
                         'user',
-                        'replies' => fn ($replyQuery) => $replyQuery->with('user')->latest(),
+                        'replies' => fn ($replyQuery) => $replyQuery->with(['user', 'reactions'])->latest(),
                     ])
                     ->latest(),
             ])
@@ -195,18 +201,6 @@ class RoutineController extends Controller
             ->pluck('routine_id')
             ->flip();
 
-        $followedUserIds = UserFollow::query()->where('follower_id', Auth::id())
-            ->pluck('followee_id')
-            ->flip();
-
-        $followerCountByRoutine = $routines->mapWithKeys(function (Routine $routine) {
-            $count = UserFollow::query()
-                ->where('followee_id', $routine->user_id)
-                ->count();
-
-            return [$routine->id => $count];
-        });
-
         $myReactions = RoutineReaction::query()->where('user_id', Auth::id())
             ->get()
             ->keyBy('routine_id');
@@ -228,6 +222,24 @@ class RoutineController extends Controller
 
             return [$routine->id => $total];
         });
+
+        $commentIds = $routines
+            ->flatMap(function (Routine $routine) {
+                return $routine->comments->flatMap(function (Comment $comment) {
+                    return collect([$comment->id])->merge($comment->replies->pluck('id'));
+                });
+            })
+            ->unique()
+            ->values();
+
+        $myCommentReactions = Reaction::query()
+            ->where('user_id', Auth::id())
+            ->where('reactable_type', Comment::class)
+            ->when($commentIds->isNotEmpty(), fn ($query) => $query->whereIn('reactable_id', $commentIds))
+            ->get()
+            ->keyBy('reactable_id');
+
+        $commentReactionMeta = self::COMMENT_REACTION_META;
 
         $recommendations = $this->buildRecommendations(Auth::id(), $latestLog);
 
@@ -255,12 +267,12 @@ class RoutineController extends Controller
             'selectedCategory',
             'likedRoutineIds',
             'savedRoutineIds',
-            'followedUserIds',
-            'followerCountByRoutine',
             'myReactions',
             'reactionMeta',
             'reactionCountsByRoutine',
             'engagementCountsByRoutine',
+            'commentReactionMeta',
+            'myCommentReactions',
             'recommendations',
             'trendingRoutines'
         ));
@@ -321,7 +333,7 @@ class RoutineController extends Controller
     }
 
     // Upvote a routine
-    public function upvote(int $id)
+    public function upvote(Request $request, int $id)
     {
         $routine = Routine::findOrFail($id);
 
@@ -333,6 +345,15 @@ class RoutineController extends Controller
             RoutineLike::query()->whereKey($existing->id)->delete();
             $routine->upvote_count = max(0, $routine->upvote_count - 1);
             $routine->save();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Like removed.',
+                    'liked' => false,
+                    'likes_count' => (int) $routine->upvote_count,
+                    'routine_id' => (int) $routine->id,
+                ]);
+            }
 
             return back()->with('success', 'Like removed.');
         }
@@ -353,6 +374,15 @@ class RoutineController extends Controller
             'Someone liked your routine',
             'Your routine received a new like from the community.'
         );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Routine liked.',
+                'liked' => true,
+                'likes_count' => (int) $routine->upvote_count,
+                'routine_id' => (int) $routine->id,
+            ]);
+        }
 
         return back()->with('success', 'Routine liked.');
     }
@@ -389,36 +419,6 @@ class RoutineController extends Controller
         return back()->with('success', 'Routine saved to your collection.');
     }
 
-    public function followContributor(int $id)
-    {
-        $routine = Routine::findOrFail($id);
-        $followeeId = (int) $routine->user_id;
-        $followerId = (int) Auth::id();
-
-        if ($followeeId === $followerId) {
-            return back()->with('error', 'You cannot follow your own account.');
-        }
-
-        UserFollow::query()->firstOrCreate([
-            'follower_id' => $followerId,
-            'followee_id' => $followeeId,
-        ]);
-
-        return back()->with('success', 'Contributor followed.');
-    }
-
-    public function unfollowContributor(int $id)
-    {
-        $routine = Routine::findOrFail($id);
-
-        UserFollow::query()
-            ->where('follower_id', Auth::id())
-            ->where('followee_id', $routine->user_id)
-            ->delete();
-
-        return back()->with('success', 'Contributor unfollowed.');
-    }
-
     public function react(Request $request, int $id)
     {
         $routine = Routine::findOrFail($id);
@@ -448,6 +448,83 @@ class RoutineController extends Controller
             'Someone reacted to your routine',
             'Your routine received a new '.$reactionLabel.' reaction.'
         );
+
+        return back()->with('success', 'Reaction updated.');
+    }
+
+    public function reactToComment(Request $request, int $id, int $commentId)
+    {
+        $routine = Routine::findOrFail($id);
+
+        $comment = Comment::query()->where('id', $commentId)
+            ->where('commentable_type', Routine::class)
+            ->where('commentable_id', $routine->id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'reaction' => 'required|string|in:'.implode(',', array_keys(self::COMMENT_REACTION_META)),
+        ]);
+
+        $existing = Reaction::query()
+            ->where('user_id', Auth::id())
+            ->where('reactable_type', Comment::class)
+            ->where('reactable_id', $comment->id)
+            ->first();
+
+        if ($existing && $existing->reaction === $validated['reaction']) {
+            Reaction::query()->whereKey($existing->id)->delete();
+
+            if ($request->expectsJson()) {
+                $counts = Reaction::query()
+                    ->where('reactable_type', Comment::class)
+                    ->where('reactable_id', $comment->id)
+                    ->selectRaw('reaction, COUNT(*) as total')
+                    ->groupBy('reaction')
+                    ->pluck('total', 'reaction');
+
+                return response()->json([
+                    'message' => 'Reaction removed.',
+                    'comment_id' => (int) $comment->id,
+                    'active_reaction' => null,
+                    'counts' => [
+                        'helpful' => (int) ($counts['helpful'] ?? 0),
+                        'inspiring' => (int) ($counts['inspiring'] ?? 0),
+                    ],
+                ]);
+            }
+
+            return back()->with('success', 'Reaction removed.');
+        }
+
+        Reaction::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'reactable_type' => Comment::class,
+                'reactable_id' => $comment->id,
+            ],
+            [
+                'reaction' => $validated['reaction'],
+            ]
+        );
+
+        if ($request->expectsJson()) {
+            $counts = Reaction::query()
+                ->where('reactable_type', Comment::class)
+                ->where('reactable_id', $comment->id)
+                ->selectRaw('reaction, COUNT(*) as total')
+                ->groupBy('reaction')
+                ->pluck('total', 'reaction');
+
+            return response()->json([
+                'message' => 'Reaction updated.',
+                'comment_id' => (int) $comment->id,
+                'active_reaction' => $validated['reaction'],
+                'counts' => [
+                    'helpful' => (int) ($counts['helpful'] ?? 0),
+                    'inspiring' => (int) ($counts['inspiring'] ?? 0),
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Reaction updated.');
     }

@@ -17,7 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'not_admin' => \App\Http\Middleware\NotAdminMiddleware::class,
             'notifications.sync' => \App\Http\Middleware\SyncNotificationsMiddleware::class,
             'suspended' => \App\Http\Middleware\EnsureUserIsNotSuspended::class,
-            'banned' => \App\Http\Middleware\EnsureUserIsNotBanned::class,
             'sessions.track' => \App\Http\Middleware\TrackUserSessionActivity::class,
             'security.headers' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
             'metrics.requests' => \App\Http\Middleware\RequestMetricsMiddleware::class,
@@ -26,7 +25,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\RequestMetricsMiddleware::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeadersMiddleware::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\SyncNotificationsMiddleware::class);
-        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsNotBanned::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsNotSuspended::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\TrackUserSessionActivity::class);
     })
