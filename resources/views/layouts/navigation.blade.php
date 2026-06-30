@@ -11,7 +11,7 @@
         <div class="flex justify-between h-[4.5rem] max-[380px]:h-[4.25rem] sm:h-24">
             <div class="flex items-center gap-3 min-w-0">
                 <a href="{{ $isAdmin ? route('admin.dashboard') : route('dashboard') }}" class="shrink-0 inline-flex items-center">
-                    <x-application-logo class="h-9 w-auto max-w-[6rem] max-[380px]:h-8 max-[380px]:max-w-[5rem] sm:h-12 sm:max-w-[8.5rem] lg:h-14 lg:max-w-[10rem]" />
+                    <x-application-logo class="h-9 w-auto max-w-[6rem] max-[380px]:h-8 max-[380px]:max-w-[5rem] sm:h-12 sm:max-w-[8.5rem] lg:h-16 lg:max-w-[12rem] xl:h-[4.5rem] xl:max-w-[13.5rem]" />
                 </a>
 
                 <div class="hidden sm:flex sm:items-center sm:space-x-2 sm:ms-4">

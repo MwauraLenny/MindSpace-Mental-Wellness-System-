@@ -42,7 +42,7 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 py-8 bg-[radial-gradient(circle_at_20%_15%,_rgba(251,191,36,0.26),_transparent_38%),radial-gradient(circle_at_85%_12%,_rgba(251,146,60,0.22),_transparent_36%),linear-gradient(145deg,_#fffbeb_0%,_#fff7ed_45%,_#fff1f2_100%)] dark:bg-[radial-gradient(circle_at_20%_15%,_rgba(251,191,36,0.14),_transparent_36%),radial-gradient(circle_at_85%_12%,_rgba(251,146,60,0.1),_transparent_32%),linear-gradient(145deg,_#020617_0%,_#0f172a_45%,_#111827_100%)]">
             <div class="text-center">
                 <a href="/" class="inline-flex items-center">
-                    <x-application-logo class="h-9 w-auto max-w-[6.25rem] max-[380px]:h-8 max-[380px]:max-w-[5.1rem] sm:h-11 sm:max-w-[7.5rem] lg:h-12 lg:max-w-[8.5rem]" />
+                    <x-application-logo class="h-9 w-auto max-w-[6.25rem] max-[380px]:h-8 max-[380px]:max-w-[5.1rem] sm:h-11 sm:max-w-[7.5rem] lg:h-[3.25rem] lg:max-w-[10rem] xl:h-14 xl:max-w-[11rem]" />
                 </a>
                 <p class="mt-3 text-sm font-medium tracking-wide text-amber-800 dark:text-amber-200/95">A calm space for healing, reflection, and growth</p>
             </div>

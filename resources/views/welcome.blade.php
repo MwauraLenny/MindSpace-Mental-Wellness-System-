@@ -42,7 +42,7 @@
 
         <section class="relative z-10 w-full">
             <div class="mb-7">
-                <x-application-logo class="h-11 w-auto max-w-[8rem] max-[380px]:h-9 max-[380px]:max-w-[6.25rem] sm:h-14 sm:max-w-[10rem] lg:h-16 lg:max-w-[11rem]" />
+                <x-application-logo class="h-11 w-auto max-w-[8rem] max-[380px]:h-9 max-[380px]:max-w-[6.25rem] sm:h-14 sm:max-w-[10rem] lg:h-[4.5rem] lg:max-w-[13rem] xl:h-20 xl:max-w-[15rem]" />
             </div>
 
             <p class="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-amber-800 dark:text-amber-200">
