@@ -15,7 +15,7 @@ The platform includes the following modules required by the proposal.
 
 - Routes: `routes/auth.php`
 - Controllers: `app/Http/Controllers/Auth/*`
-- Features: registration, login, admin login, password reset, email verification, logout
+- Features: registration, login, role-based dashboard redirect, password reset, email verification, logout
 
 ### 2) Mood Tracking Module
 

@@ -8,7 +8,9 @@
         <meta name="color-scheme" content="light dark">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Mindspace') }}</title>
+        <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+        <link rel="shortcut icon" href="{{ asset('logo.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -44,6 +46,10 @@
         </script>
 
         <style>
+            [x-cloak] {
+                display: none !important;
+            }
+
             html.dark body,
             html.dark .min-h-screen {
                 background-color: #020617;

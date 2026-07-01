@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\MoodLog;
 use App\Models\Notification;
+use App\Models\Role;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -17,13 +18,15 @@ class PresentationUserSeeder extends Seeder
     public function run(): void
     {
         $createdAt = Carbon::now()->subMonths(11)->subDays(10)->startOfDay();
+        $userRoleId = Role::query()->where('slug', 'user')->value('id');
 
         $user = User::updateOrCreate(
-            ['email' => 'presenter@mindspace.demo'],
+            ['email' => 'avery@mindspace.com'],
             [
-                'name' => 'Avery Presenter',
+                'name' => 'Avery',
                 'password' => Hash::make('MindspaceDemo!2026'),
                 'role' => 'user',
+                'role_id' => $userRoleId,
                 'anonymous_sharing' => false,
                 'email_verified_at' => Carbon::now()->subMonths(11),
                 'created_at' => $createdAt,

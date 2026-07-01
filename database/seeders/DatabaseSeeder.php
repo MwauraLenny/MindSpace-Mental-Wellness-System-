@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             RoutineCategorySeeder::class,
+            CommunityFeedSeeder::class,
             MoodJournalSeeder::class,
             MoodEntrySeeder::class,
             RoutineSeeder::class,

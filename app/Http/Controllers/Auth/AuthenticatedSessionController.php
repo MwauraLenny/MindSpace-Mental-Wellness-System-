@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\AuditLog;
 use App\Models\UserSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -20,14 +18,6 @@ class AuthenticatedSessionController extends Controller
     public function create(): View
     {
         return view('auth.login');
-    }
-
-    /**
-     * Display the admin login view.
-     */
-    public function createAdmin(): View
-    {
-        return view('auth.admin-login');
     }
 
     /**
@@ -54,69 +44,6 @@ class AuthenticatedSessionController extends Controller
             : 'dashboard';
 
         return redirect()->intended(route($redirectRoute, absolute: false));
-    }
-
-    /**
-     * Handle an incoming admin portal authentication request.
-     */
-    public function storeAdmin(LoginRequest $request): RedirectResponse
-    {
-        try {
-            $request->authenticate();
-        } catch (ValidationException $exception) {
-            AuditLog::create([
-                'action' => 'admin_login_failed',
-                'meta' => [
-                    'email' => (string) $request->input('email', ''),
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ],
-            ]);
-
-            throw $exception;
-        }
-
-        if ($request->user()?->role !== 'admin') {
-            AuditLog::create([
-                'actor_id' => $request->user()?->id,
-                'action' => 'admin_login_rejected_non_admin',
-                'target_type' => 'user',
-                'target_id' => $request->user()?->id,
-                'meta' => [
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ],
-            ]);
-
-            Auth::guard('web')->logout();
-
-            throw ValidationException::withMessages([
-                'email' => __('Only admin accounts can sign in here.'),
-            ]);
-        }
-
-        $request->session()->regenerate();
-
-        UserSession::trackActivity(
-            (int) $request->user()->id,
-            $request->session()->getId(),
-            $request->ip(),
-            $request->userAgent(),
-            ['guard' => 'web', 'portal' => 'admin']
-        );
-
-        AuditLog::create([
-            'actor_id' => $request->user()->id,
-            'action' => 'admin_login_success',
-            'target_type' => 'user',
-            'target_id' => $request->user()->id,
-            'meta' => [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ],
-        ]);
-
-        return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 
     /**

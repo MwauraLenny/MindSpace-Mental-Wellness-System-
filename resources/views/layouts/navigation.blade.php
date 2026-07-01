@@ -43,6 +43,7 @@
 
                             <div
                                 x-show="exploreDesktopOpen"
+                                x-cloak
                                 x-transition
                                 class="absolute left-0 mt-2 w-56 rounded-lg border border-amber-200/80 bg-white shadow-lg py-1 z-40"
                             >
@@ -71,6 +72,7 @@
 
                             <div
                                 x-show="adminDesktopOpen"
+                                x-cloak
                                 x-transition
                                 class="absolute left-0 mt-2 w-64 rounded-xl border border-amber-200/80 bg-amber-50/95 shadow-lg py-1.5 z-40"
                             >

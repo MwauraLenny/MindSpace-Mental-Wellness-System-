@@ -70,4 +70,18 @@ class PasswordResetTest extends TestCase
             return true;
         });
     }
+
+    public function test_reset_password_link_cannot_be_requested_with_unregistered_email(): void
+    {
+        Notification::fake();
+
+        $response = $this->from('/forgot-password')->post('/forgot-password', [
+            'email' => 'unknown@example.com',
+        ]);
+
+        $response->assertRedirect('/forgot-password');
+        $response->assertSessionHasErrors('email');
+
+        Notification::assertNothingSent();
+    }
 }

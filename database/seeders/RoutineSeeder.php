@@ -10,6 +10,10 @@ class RoutineSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::table('routines')
+            ->where('title', 'REGEXP', '^(Steadying|Recovery|Balance|Momentum|Peak) Mood [1-5] Routine [0-9]{2}$')
+            ->delete();
+
         $users = User::query()->get(['id']);
 
         if ($users->isEmpty()) {
@@ -22,6 +26,17 @@ class RoutineSeeder extends Seeder
             ->pluck('id', 'slug');
 
         $durations = ['7 minutes', '10 minutes', '12 minutes', '15 minutes', '20 minutes', '25 minutes', '30 minutes', '35 minutes'];
+        $titleIntents = [
+            'Reset Plan',
+            'Focus Flow',
+            'Grounding Ritual',
+            'Recovery Sequence',
+            'Momentum Builder',
+            'Calm Practice',
+            'Clarity Routine',
+            'Energy Rhythm',
+        ];
+        $timeAnchors = ['Morning', 'Afternoon', 'Evening', 'Night'];
 
         $actionByMood = [
             1 => [
@@ -69,7 +84,14 @@ class RoutineSeeder extends Seeder
                 $duration = $durations[($index + $moodTag - 1) % count($durations)];
                 $categorySlug = $categoryRotation[($index + $moodTag - 1) % count($categoryRotation)];
 
-                $title = sprintf('%s Mood %d Routine %02d', $moodMeta['prefix'], $moodTag, $index);
+                $title = sprintf(
+                    '%s %s (%s) M%d-%02d',
+                    $moodMeta['prefix'],
+                    $titleIntents[($index + $moodTag - 2) % count($titleIntents)],
+                    $timeAnchors[($index + $moodTag - 2) % count($timeAnchors)],
+                    $moodTag,
+                    $index
+                );
                 $body = sprintf(
                     'For mood score %d, I spend %s to %s, %s.',
                     $moodTag,
@@ -80,9 +102,14 @@ class RoutineSeeder extends Seeder
 
                 DB::table('routines')->updateOrInsert(
                     [
-                        'title' => $title,
+                        'mood_tag' => $moodTag,
+                        'status' => 'active',
+                        'is_anonymous' => false,
+                        'user_id' => $user->id,
+                        'routine_category_id' => $categoryMap[$categorySlug] ?? null,
                     ],
                     [
+                        'title' => $title,
                         'user_id' => $user->id,
                         'mood_tag' => $moodTag,
                         'routine_category_id' => $categoryMap[$categorySlug] ?? null,

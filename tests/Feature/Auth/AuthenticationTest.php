@@ -10,11 +10,11 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_login_screen_can_be_rendered(): void
+    public function test_admin_login_screen_is_not_available_anymore(): void
     {
         $response = $this->get('/admin/login');
 
-        $response->assertStatus(200);
+        $response->assertNotFound();
     }
 
     public function test_login_screen_can_be_rendered(): void
@@ -54,24 +54,7 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('admin.dashboard', absolute: false));
     }
 
-    public function test_non_admin_users_cannot_login_from_admin_login_page(): void
-    {
-        /** @var User $user */
-        $user = User::factory()->createOne([
-            'role' => 'user',
-        ]);
-
-        $response = $this->post('/admin/login', [
-            'email' => $user->email,
-            'password' => 'password',
-            'admin_login' => true,
-        ]);
-
-        $this->assertGuest();
-        $response->assertSessionHasErrors('email');
-    }
-
-    public function test_admin_users_can_login_from_admin_login_page(): void
+    public function test_admin_login_submission_endpoint_is_not_available_anymore(): void
     {
         /** @var User $admin */
         $admin = User::factory()->createOne([
@@ -81,11 +64,10 @@ class AuthenticationTest extends TestCase
         $response = $this->post('/admin/login', [
             'email' => $admin->email,
             'password' => 'password',
-            'admin_login' => true,
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('admin.dashboard', absolute: false));
+        $this->assertGuest();
+        $response->assertNotFound();
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
