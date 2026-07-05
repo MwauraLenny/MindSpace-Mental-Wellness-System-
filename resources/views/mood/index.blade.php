@@ -26,8 +26,15 @@
 
             {{-- Mood improved prompt --}}
             @if($moodImproved)
-                <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-4 rounded">
-                    <p class="font-semibold">Nice progress, {{ $userName }}. Your mood has improved! 🎉</p>
+                <div x-data="{ open: true }" x-show="open" class="relative bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-4 rounded">
+                    <button
+                        type="button"
+                        @click="open = false"
+                        class="absolute top-2 right-2 inline-flex items-center justify-center rounded-md border border-yellow-500/40 bg-white/70 px-2 py-1 text-xs font-semibold text-yellow-800 hover:bg-white"
+                    >
+                        Cancel
+                    </button>
+                    <p class="font-semibold">You have improved from {{ $fromMoodLabel ?? 'your previous mood' }} to {{ $toMoodLabel ?? 'your current mood' }}. 🎉</p>
                     <p class="text-sm mt-1">Would you like to share what helped you so others can benefit too?</p>
                     <a href="/routines/create" class="mt-2 inline-block bg-yellow-500 text-white px-4 py-2 rounded text-sm">
                         Yes, share my routine
@@ -37,8 +44,15 @@
 
             {{-- Mood dropped prompt --}}
             @if($moodDropped)
-                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-4 rounded">
-                    <p class="font-semibold">{{ $userName }}, it looks like your mood dropped a bit.</p>
+                <div x-data="{ open: true }" x-show="open" class="relative bg-rose-50 border border-rose-200 text-rose-800 px-4 py-4 rounded">
+                    <button
+                        type="button"
+                        @click="open = false"
+                        class="absolute top-2 right-2 inline-flex items-center justify-center rounded-md border border-rose-300 bg-white/80 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-white"
+                    >
+                        Cancel
+                    </button>
+                    <p class="font-semibold">You have dropped from {{ $fromMoodLabel ?? 'your previous mood' }} to {{ $toMoodLabel ?? 'your current mood' }}.</p>
                     <p class="text-sm mt-1">That is okay. You can add a note, check your mood patterns, or explore community routines that may help today.</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                         <a href="{{ route('mood.dashboard') }}" class="inline-block bg-rose-600 text-white px-4 py-2 rounded text-sm hover:bg-rose-700">
@@ -53,7 +67,15 @@
 
             {{-- Mood stable prompt --}}
             @if($moodStable)
-                <div class="bg-sky-50 border border-sky-200 text-sky-800 px-4 py-4 rounded">
+                <div x-data="{ open: true }" x-show="open" class="relative bg-sky-50 border border-sky-200 text-sky-800 px-4 py-4 rounded">
+                    <button
+                        type="button"
+                        @click="open = false"
+                        class="absolute top-2 right-2 inline-flex items-center justify-center rounded-md border border-sky-300 bg-white/80 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-white"
+                    >
+                        Cancel
+                    </button>
+                    <p class="font-semibold mb-1">You have maintained your mood from {{ $fromMoodLabel ?? 'your previous mood' }} to {{ $toMoodLabel ?? 'your current mood' }}.</p>
                     @if($moodStableRegion === 'happy')
                         <p class="font-semibold">Great consistency, {{ $userName }}. You stayed in a strong mood zone (4-5).</p>
                         <p class="text-sm mt-1">Keep repeating what is working and log one quick note about the habits that helped.</p>

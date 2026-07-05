@@ -116,6 +116,9 @@ class MoodLogController extends Controller
         $moodStable = $latestMood && $previousMood
             && $latestMood->mood_value === $previousMood->mood_value;
 
+        $fromMoodLabel = $previousMood?->mood_label;
+        $toMoodLabel = $latestMood?->mood_label;
+
         $moodStableRegion = null;
 
         if ($moodStable && $latestMood) {
@@ -133,6 +136,8 @@ class MoodLogController extends Controller
             'moodDropped',
             'moodStable',
             'moodStableRegion',
+            'fromMoodLabel',
+            'toMoodLabel',
             'moodCategories',
             'userName',
             'streakDays',

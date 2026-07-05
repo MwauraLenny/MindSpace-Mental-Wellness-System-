@@ -60,7 +60,6 @@
                                     @csrf
                                     @method('PATCH')
                                     <input type="hidden" name="action" value="warn">
-                                    <label class="block text-xs font-semibold text-gray-700">Warning note</label>
                                     <textarea name="admin_note" rows="2" class="w-full rounded-md border-amber-200 bg-white/90 text-xs" placeholder="Explain the warning to the content owner" required></textarea>
                                     <button type="submit" class="w-full text-[11px] px-3 py-2 rounded-lg bg-amber-600 text-white uppercase tracking-[0.08em] hover:bg-amber-700">Warn User</button>
                                 </form>
