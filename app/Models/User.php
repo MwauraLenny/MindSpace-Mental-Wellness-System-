@@ -110,6 +110,11 @@ class User extends Authenticatable
         return $this->hasMany(RecommendationHistory::class);
     }
 
+    public function routineFeedback()
+    {
+        return $this->hasMany(RoutineFeedback::class);
+    }
+
     public function userSessions()
     {
         return $this->hasMany(UserSession::class);

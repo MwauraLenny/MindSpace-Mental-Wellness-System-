@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Report;
 use App\Models\Routine;
 use App\Models\RoutineLike;
+use App\Models\RoutineFeedback;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
 use App\Models\User;
@@ -94,19 +95,38 @@ class ReportController extends Controller
             'status' => Report::STATUS_PENDING,
         ]);
 
+        $isSelfHarmRisk = $validated['reason'] === 'self_harm_risk';
+
         /** @var NotificationService $notificationService */
         $notificationService = app(NotificationService::class);
         $notificationService->notifyAdmins(
             'admin_notification',
-            'New content report submitted',
-            'A new community content report is waiting for moderation review.',
+            $isSelfHarmRisk ? 'Urgent self-harm risk report submitted' : 'New content report submitted',
+            $isSelfHarmRisk
+                ? 'A self-harm risk report requires immediate moderation review and safety follow-up.'
+                : 'A new community content report is waiting for moderation review.',
             [
                 'report_id' => $report->id,
                 'reportable_type' => $reportableClass,
                 'reportable_id' => (int) $validated['reportable_id'],
                 'reason' => $validated['reason'],
+                'priority' => $isSelfHarmRisk ? 'urgent' : 'normal',
             ]
         );
+
+        if ($isSelfHarmRisk) {
+            $notificationService->createForUser(
+                (int) Auth::id(),
+                'admin_notification',
+                'You are not alone: immediate support resources',
+                'If there is immediate danger, contact local emergency services now. You can also reach a trusted person and seek professional crisis support in your region.',
+                [
+                    'report_id' => $report->id,
+                    'reason' => $validated['reason'],
+                    'priority' => 'urgent',
+                ]
+            );
+        }
 
         if ($ownerId > 0) {
             $notificationService->createForUser(
@@ -154,6 +174,9 @@ class ReportController extends Controller
             fputcsv($handle, ['Positive Mood Rate', $data['positiveRate'].'%']);
             fputcsv($handle, ['Most Common Mood', $data['mostFrequentMood']]);
             fputcsv($handle, ['Trend Summary', $data['trendSummary']]);
+            fputcsv($handle, ['Routine Feedback Submitted', $data['feedbackMetrics']['submitted']]);
+            fputcsv($handle, ['Routine Help Rate', $data['feedbackMetrics']['helpRate'].'%']);
+            fputcsv($handle, ['Avg Mood Delta After Helped Routines', $data['feedbackMetrics']['avgMoodDeltaHelped']]);
 
             fputcsv($handle, []);
             fputcsv($handle, ['Mood Category', 'Count']);
@@ -302,6 +325,8 @@ class ReportController extends Controller
             fputcsv($handle, ['Pending Reports', $data['reportStats']['pending']]);
             fputcsv($handle, ['Resolved Reports', $data['reportStats']['resolved']]);
             fputcsv($handle, ['Dismissed Reports', $data['reportStats']['dismissed']]);
+            fputcsv($handle, ['Routine Feedback Events (30d)', $data['monitoringMetrics']['feedback_events_30d']]);
+            fputcsv($handle, ['Routine Help Rate (30d)', $data['monitoringMetrics']['feedback_help_rate_30d'].'%']);
 
             fputcsv($handle, []);
             fputcsv($handle, ['Most Common Moods', 'Count']);
@@ -402,6 +427,33 @@ class ReportController extends Controller
                 ->count(),
         ];
 
+        $feedbackSubmitted = RoutineFeedback::query()
+            ->where('user_id', $userId)
+            ->count();
+
+        $feedbackHelped = RoutineFeedback::query()
+            ->where('user_id', $userId)
+            ->where('helped', true)
+            ->count();
+
+        $feedbackWithDelta = RoutineFeedback::query()
+            ->where('user_id', $userId)
+            ->where('helped', true)
+            ->whereNotNull('mood_delta')
+            ->pluck('mood_delta');
+
+        $feedbackMetrics = [
+            'submitted' => $feedbackSubmitted,
+            'helped' => $feedbackHelped,
+            'not_helped' => max(0, $feedbackSubmitted - $feedbackHelped),
+            'helpRate' => $feedbackSubmitted > 0
+                ? round(($feedbackHelped / $feedbackSubmitted) * 100, 1)
+                : 0,
+            'avgMoodDeltaHelped' => $feedbackWithDelta->isNotEmpty()
+                ? round($feedbackWithDelta->avg(), 2)
+                : 0,
+        ];
+
         return [
             'totalEntries' => $totalEntries,
             'averageScore' => $averageScore,
@@ -413,6 +465,7 @@ class ReportController extends Controller
             'dailyMoodTrendDates' => $dailyMoodTrend->keys()->values(),
             'dailyMoodTrendScores' => $dailyMoodTrend->values(),
             'activitySummary' => $activitySummary,
+            'feedbackMetrics' => $feedbackMetrics,
         ];
     }
 
@@ -475,6 +528,10 @@ class ReportController extends Controller
         $reportStats = [
             'total' => DB::table('reports')->count(),
             'pending' => Report::query()->where('status', 'pending')->count(),
+            'self_harm_pending' => Report::query()
+                ->where('status', Report::STATUS_PENDING)
+                ->where('reason', 'self_harm_risk')
+                ->count(),
             'resolved' => Report::query()->where('status', 'resolved')->count(),
             'dismissed' => Report::query()->where('status', 'dismissed')->count(),
             'by_type' => DB::table('reports')
@@ -487,6 +544,7 @@ class ReportController extends Controller
         $pendingReports = Report::query()
             ->with(['reporter', 'reportable'])
             ->where('status', Report::STATUS_PENDING)
+            ->orderByRaw("CASE WHEN reason = 'self_harm_risk' THEN 0 ELSE 1 END")
             ->orderBy('created_at')
             ->limit(20)
             ->get();
@@ -510,6 +568,17 @@ class ReportController extends Controller
                 ->where('status', Report::STATUS_DISMISSED)
                 ->where('resolved_at', '>=', Carbon::now()->subDays(7)->startOfDay())
                 ->count(),
+            'self_harm_reports_24h' => Report::query()
+                ->where('reason', 'self_harm_risk')
+                ->where('created_at', '>=', Carbon::now()->subDay())
+                ->count(),
+            'feedback_events_30d' => RoutineFeedback::query()
+                ->where('created_at', '>=', Carbon::now()->subDays(30)->startOfDay())
+                ->count(),
+            'feedback_help_rate_30d' => round((float) RoutineFeedback::query()
+                ->where('created_at', '>=', Carbon::now()->subDays(30)->startOfDay())
+                ->selectRaw('COALESCE(AVG(CASE WHEN helped = 1 THEN 100 ELSE 0 END), 0) as help_rate')
+                ->value('help_rate'), 1),
             'removed_routines_total' => Routine::query()
                 ->where('status', '!=', 'active')
                 ->count(),

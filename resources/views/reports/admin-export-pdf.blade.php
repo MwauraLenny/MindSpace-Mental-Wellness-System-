@@ -77,5 +77,13 @@
             <tr><th>Dismissed</th><td>{{ $reportStats['dismissed'] }}</td></tr>
         </tbody>
     </table>
+
+    <h2>Routine Feedback Monitoring</h2>
+    <table>
+        <tbody>
+            <tr><th>Feedback events (30d)</th><td>{{ $monitoringMetrics['feedback_events_30d'] }}</td></tr>
+            <tr><th>Help rate (30d)</th><td>{{ $monitoringMetrics['feedback_help_rate_30d'] }}%</td></tr>
+        </tbody>
+    </table>
 </body>
 </html>

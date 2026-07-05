@@ -62,5 +62,15 @@
             @endforeach
         </tbody>
     </table>
+
+    <h2>Routine Outcome Feedback</h2>
+    <table>
+        <tbody>
+            <tr><th>Feedback submitted</th><td>{{ $feedbackMetrics['submitted'] }}</td></tr>
+            <tr><th>Marked helpful</th><td>{{ $feedbackMetrics['helped'] }}</td></tr>
+            <tr><th>Help rate</th><td>{{ $feedbackMetrics['helpRate'] }}%</td></tr>
+            <tr><th>Avg mood delta after helpful routines</th><td>{{ $feedbackMetrics['avgMoodDeltaHelped'] }}</td></tr>
+        </tbody>
+    </table>
 </body>
 </html>

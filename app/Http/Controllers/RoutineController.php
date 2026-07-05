@@ -7,12 +7,16 @@ use App\Models\Comment;
 use App\Models\MoodLog;
 use App\Models\Reaction;
 use App\Models\RoutineCategory;
+use App\Models\RoutineDownvote;
+use App\Models\RoutineFeedback;
 use App\Models\RoutineLike;
 use App\Models\RoutineReaction;
 use App\Models\SavedRoutine;
 use App\Services\NotificationService;
+use App\Services\RoutineRecommendationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 
 class RoutineController extends Controller
 {
@@ -197,6 +201,10 @@ class RoutineController extends Controller
             ->pluck('routine_id')
             ->flip();
 
+        $downvotedRoutineIds = RoutineDownvote::query()->where('user_id', Auth::id())
+            ->pluck('routine_id')
+            ->flip();
+
         $savedRoutineIds = SavedRoutine::query()->where('user_id', Auth::id())
             ->pluck('routine_id')
             ->flip();
@@ -241,7 +249,20 @@ class RoutineController extends Controller
 
         $commentReactionMeta = self::COMMENT_REACTION_META;
 
-        $recommendations = $this->buildRecommendations(Auth::id(), $latestLog);
+        /** @var RoutineRecommendationService $recommendationService */
+        $recommendationService = app(RoutineRecommendationService::class);
+        $recommendations = $recommendationService->buildForUser((int) Auth::id(), $latestLog);
+
+        $feedbackRoutineIds = $routines->pluck('id')
+            ->merge(collect($recommendations['routines'])->pluck('id'))
+            ->unique()
+            ->values();
+
+        $routineFeedbackByRoutineId = RoutineFeedback::query()
+            ->where('user_id', Auth::id())
+            ->when($feedbackRoutineIds->isNotEmpty(), fn ($q) => $q->whereIn('routine_id', $feedbackRoutineIds))
+            ->get()
+            ->keyBy('routine_id');
 
         $trendingRoutines = Routine::query()
             ->with('user')
@@ -266,6 +287,7 @@ class RoutineController extends Controller
             'categories',
             'selectedCategory',
             'likedRoutineIds',
+            'downvotedRoutineIds',
             'savedRoutineIds',
             'myReactions',
             'reactionMeta',
@@ -273,6 +295,7 @@ class RoutineController extends Controller
             'engagementCountsByRoutine',
             'commentReactionMeta',
             'myCommentReactions',
+            'routineFeedbackByRoutineId',
             'recommendations',
             'trendingRoutines'
         ));
@@ -337,7 +360,25 @@ class RoutineController extends Controller
     {
         $routine = Routine::findOrFail($id);
 
+        if ($response = $this->throttleVote($request, $routine->id)) {
+            return $response;
+        }
+
+        if ((int) $routine->user_id === (int) Auth::id()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'You cannot like your own routine.',
+                ], 422);
+            }
+
+            return back()->with('error', 'You cannot like your own routine.');
+        }
+
         $existing = RoutineLike::query()->where('routine_id', $routine->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        $existingDownvote = RoutineDownvote::query()->where('routine_id', $routine->id)
             ->where('user_id', Auth::id())
             ->first();
 
@@ -350,7 +391,9 @@ class RoutineController extends Controller
                 return response()->json([
                     'message' => 'Like removed.',
                     'liked' => false,
+                    'downvoted' => $existingDownvote !== null,
                     'likes_count' => (int) $routine->upvote_count,
+                    'downvotes_count' => (int) $routine->downvote_count,
                     'routine_id' => (int) $routine->id,
                 ]);
             }
@@ -362,6 +405,12 @@ class RoutineController extends Controller
             'routine_id' => $routine->id,
             'user_id' => Auth::id(),
         ]);
+
+        if ($existingDownvote) {
+            RoutineDownvote::query()->whereKey($existingDownvote->id)->delete();
+            $routine->downvote_count = max(0, $routine->downvote_count - 1);
+            $routine->save();
+        }
 
         $routine->increment('upvote_count');
 
@@ -379,12 +428,86 @@ class RoutineController extends Controller
             return response()->json([
                 'message' => 'Routine liked.',
                 'liked' => true,
+                'downvoted' => false,
                 'likes_count' => (int) $routine->upvote_count,
+                'downvotes_count' => (int) $routine->downvote_count,
                 'routine_id' => (int) $routine->id,
             ]);
         }
 
         return back()->with('success', 'Routine liked.');
+    }
+
+    public function downvote(Request $request, int $id)
+    {
+        $routine = Routine::findOrFail($id);
+
+        if ($response = $this->throttleVote($request, $routine->id)) {
+            return $response;
+        }
+
+        if ((int) $routine->user_id === (int) Auth::id()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'You cannot downvote your own routine.',
+                ], 422);
+            }
+
+            return back()->with('error', 'You cannot downvote your own routine.');
+        }
+
+        $existing = RoutineDownvote::query()->where('routine_id', $routine->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        $existingLike = RoutineLike::query()->where('routine_id', $routine->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($existing) {
+            RoutineDownvote::query()->whereKey($existing->id)->delete();
+            $routine->downvote_count = max(0, $routine->downvote_count - 1);
+            $routine->save();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Downvote removed.',
+                    'downvoted' => false,
+                    'liked' => $existingLike !== null,
+                    'downvotes_count' => (int) $routine->downvote_count,
+                    'likes_count' => (int) $routine->upvote_count,
+                    'routine_id' => (int) $routine->id,
+                ]);
+            }
+
+            return back()->with('success', 'Downvote removed.');
+        }
+
+        RoutineDownvote::create([
+            'routine_id' => $routine->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        if ($existingLike) {
+            RoutineLike::query()->whereKey($existingLike->id)->delete();
+            $routine->upvote_count = max(0, $routine->upvote_count - 1);
+            $routine->save();
+        }
+
+        $routine->increment('downvote_count');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Routine downvoted.',
+                'downvoted' => true,
+                'liked' => false,
+                'downvotes_count' => (int) $routine->downvote_count,
+                'likes_count' => (int) $routine->upvote_count,
+                'routine_id' => (int) $routine->id,
+            ]);
+        }
+
+        return back()->with('success', 'Routine downvoted.');
     }
 
     public function save(int $id)
@@ -417,6 +540,52 @@ class RoutineController extends Controller
         );
 
         return back()->with('success', 'Routine saved to your collection.');
+    }
+
+    public function feedback(Request $request, int $id)
+    {
+        $routine = Routine::query()
+            ->where('id', $id)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'helped' => 'required|boolean',
+        ]);
+
+        $latestMood = MoodLog::query()
+            ->where('user_id', Auth::id())
+            ->orderByDesc('logged_at')
+            ->first();
+
+        $feedback = RoutineFeedback::query()->firstOrNew([
+            'user_id' => Auth::id(),
+            'routine_id' => $routine->id,
+        ]);
+
+        if (! $feedback->exists) {
+            $feedback->before_mood_value = $latestMood?->mood_value;
+        } else {
+            $feedback->after_mood_value = $latestMood?->mood_value;
+        }
+
+        $feedback->helped = (bool) $validated['helped'];
+
+        if ($feedback->before_mood_value !== null && $feedback->after_mood_value !== null) {
+            $feedback->mood_delta = (int) $feedback->after_mood_value - (int) $feedback->before_mood_value;
+        }
+
+        $feedback->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Feedback saved.',
+                'routine_id' => (int) $routine->id,
+                'helped' => (bool) $feedback->helped,
+            ]);
+        }
+
+        return back()->with('success', 'Thanks for the feedback.');
     }
 
     public function react(Request $request, int $id)
@@ -612,123 +781,28 @@ class RoutineController extends Controller
         }
     }
 
-    private function buildRecommendations(int $userId, ?MoodLog $latestLog): array
+    private function throttleVote(Request $request, int $routineId)
     {
-        $latestMoodValue = $latestLog?->mood_value;
-        $latestMoodKey = $latestLog?->mood_category_key ?? 'default';
-        $latestMoodLabel = $latestLog?->mood_label ?? 'Current';
-        $latestMoodEmoji = $latestLog?->mood_emoji ?? '🙂';
+        $userId = (int) Auth::id();
+        $globalKey = 'routine-vote-global:'.$userId;
+        $routineKey = 'routine-vote-routine:'.$userId.':'.$routineId;
 
-        $similarUserIds = MoodLog::query()
-            ->where('user_id', '!=', $userId)
-            ->when(
-                $latestLog,
-                fn ($query) => $query->where(function ($moodQuery) use ($latestMoodValue, $latestMoodKey) {
-                    $moodQuery
-                        ->when($latestMoodValue, fn ($q) => $q->where('mood_value', $latestMoodValue))
-                        ->orWhere('mood_category', $latestMoodKey);
-                }),
-                fn ($query) => $query->where('mood_value', '<=', 3)
-            )
-            ->orderByDesc('logged_at')
-            ->limit(50)
-            ->pluck('user_id')
-            ->unique()
-            ->values();
+        if (RateLimiter::tooManyAttempts($globalKey, 60) || RateLimiter::tooManyAttempts($routineKey, 12)) {
+            $message = 'Too many vote actions in a short period. Please wait and try again.';
 
-        $preferredCategoryIds = Routine::query()
-            ->select('routines.routine_category_id')
-            ->whereNotNull('routines.routine_category_id')
-            ->where(function ($query) use ($userId) {
-                $query->whereIn('routines.id', function ($sub) use ($userId) {
-                    $sub->select('routine_id')->from('saved_routines')->where('user_id', $userId);
-                })->orWhereIn('routines.id', function ($sub) use ($userId) {
-                    $sub->select('routine_id')->from('routine_likes')->where('user_id', $userId);
-                })->orWhereIn('routines.id', function ($sub) use ($userId) {
-                    $sub->select('routine_id')->from('routine_reactions')->where('user_id', $userId);
-                });
-            })
-            ->pluck('routines.routine_category_id')
-            ->unique()
-            ->values();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                ], 429);
+            }
 
-        $candidateRoutines = Routine::query()
-            ->with(['user', 'category'])
-            ->withCount(['likes', 'saves', 'comments', 'reactions'])
-            ->where('status', 'active')
-            ->where('user_id', '!=', $userId)
-            ->where(function ($query) use ($latestMoodValue, $similarUserIds, $preferredCategoryIds) {
-                $query
-                    ->when($latestMoodValue, fn ($q) => $q->orWhere('mood_tag', $latestMoodValue))
-                    ->when($similarUserIds->isNotEmpty(), fn ($q) => $q->orWhereIn('user_id', $similarUserIds))
-                    ->when($preferredCategoryIds->isNotEmpty(), fn ($q) => $q->orWhereIn('routine_category_id', $preferredCategoryIds));
-            })
-            ->orderByDesc('created_at')
-            ->limit(40)
-            ->get();
-
-        if ($candidateRoutines->isEmpty()) {
-            $candidateRoutines = Routine::query()
-                ->with(['user', 'category'])
-                ->withCount(['likes', 'saves', 'comments', 'reactions'])
-                ->where('status', 'active')
-                ->where('user_id', '!=', $userId)
-                ->orderByDesc('upvote_count')
-                ->orderByDesc('created_at')
-                ->limit(10)
-                ->get();
+            return back()->with('error', $message);
         }
 
-        $recommendedRoutines = $candidateRoutines
-            ->map(function (Routine $routine) use ($latestMoodValue, $similarUserIds, $preferredCategoryIds) {
-                $isMoodMatch = $latestMoodValue !== null && (int) $routine->mood_tag === (int) $latestMoodValue;
-                $isSimilarUserRoutine = $similarUserIds->contains($routine->user_id);
-                $isPreferredCategory = $preferredCategoryIds->contains($routine->routine_category_id);
+        RateLimiter::hit($globalKey, 3600);
+        RateLimiter::hit($routineKey, 3600);
 
-                $engagementScore = (int) $routine->likes_count
-                    + (int) $routine->saves_count
-                    + (int) $routine->comments_count
-                    + (int) $routine->reactions_count;
-
-                $score = $engagementScore
-                    + ($isMoodMatch ? 12 : 0)
-                    + ($isSimilarUserRoutine ? 8 : 0)
-                    + ($isPreferredCategory ? 5 : 0);
-
-                $reason = 'Trending support routine';
-
-                if ($isMoodMatch && $isSimilarUserRoutine) {
-                    $reason = 'Mood match from users with similar mood history';
-                } elseif ($isMoodMatch) {
-                    $reason = 'Mood-based recommendation';
-                } elseif ($isSimilarUserRoutine) {
-                    $reason = 'From users with similar mood history';
-                } elseif ($isPreferredCategory) {
-                    $reason = 'Personalized from your engagement patterns';
-                }
-
-                $routine->setAttribute('recommendation_reason', $reason);
-                $routine->setAttribute('recommendation_score', $score);
-                $routine->setAttribute('recommendation_is_mood_match', $isMoodMatch);
-                $routine->setAttribute('recommendation_is_similar_user', $isSimilarUserRoutine);
-                $routine->setAttribute('recommendation_is_preferred_category', $isPreferredCategory);
-                $routine->setAttribute('recommendation_engagement_score', $engagementScore);
-
-                return $routine;
-            })
-            ->sortByDesc('recommendation_score')
-            ->take(5)
-            ->values();
-
-        $copingStrategies = self::COPING_STRATEGIES_BY_MOOD[$latestMoodKey] ?? self::COPING_STRATEGIES_BY_MOOD['default'];
-
-        return [
-            'latestMoodLabel' => $latestMoodLabel,
-            'latestMoodEmoji' => $latestMoodEmoji,
-            'similarUserCount' => $similarUserIds->count(),
-            'copingStrategies' => $copingStrategies,
-            'routines' => $recommendedRoutines,
-        ];
+        return null;
     }
 
     private function resolveAnonymousSelection(Request $request): bool

@@ -22,6 +22,7 @@ class Routine extends Model
         'body',
         'is_anonymous',
         'upvote_count',
+        'downvote_count',
         'status',
     ];
 
@@ -38,6 +39,16 @@ class Routine extends Model
     public function likes()
     {
         return $this->hasMany(RoutineLike::class);
+    }
+
+    public function downvotes()
+    {
+        return $this->hasMany(RoutineDownvote::class);
+    }
+
+    public function feedback()
+    {
+        return $this->hasMany(RoutineFeedback::class);
     }
 
     public function saves()

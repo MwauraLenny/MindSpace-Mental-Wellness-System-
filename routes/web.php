@@ -63,6 +63,8 @@ Route::middleware(['auth', 'not_admin'])->group(function () {
     Route::get('/routines/create', [App\Http\Controllers\RoutineController::class, 'create'])->name('routines.create');
     Route::post('/routines', [App\Http\Controllers\RoutineController::class, 'store'])->name('routines.store');
     Route::post('/routines/{id}/upvote', [App\Http\Controllers\RoutineController::class, 'upvote'])->name('routines.upvote');
+    Route::post('/routines/{id}/downvote', [App\Http\Controllers\RoutineController::class, 'downvote'])->name('routines.downvote');
+    Route::post('/routines/{id}/feedback', [App\Http\Controllers\RoutineController::class, 'feedback'])->name('routines.feedback');
     Route::post('/routines/{id}/save', [App\Http\Controllers\RoutineController::class, 'save'])->name('routines.save');
     Route::post('/routines/{id}/react', [App\Http\Controllers\RoutineController::class, 'react'])->name('routines.react');
     Route::post('/routines/{id}/comments', [App\Http\Controllers\RoutineController::class, 'comment'])->name('routines.comments.store');

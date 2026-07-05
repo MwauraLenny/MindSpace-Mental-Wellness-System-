@@ -113,6 +113,11 @@
                     <div class="rounded-lg border border-rose-200/70 bg-rose-50/50 px-4 py-3">Removed Comments: <span class="font-semibold">{{ $monitoringMetrics['removed_comments_total'] }}</span></div>
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-sm">
+                    <div class="rounded-lg border border-indigo-200/70 bg-indigo-50/50 px-4 py-3">Routine feedback events (30d): <span class="font-semibold">{{ $monitoringMetrics['feedback_events_30d'] }}</span></div>
+                    <div class="rounded-lg border border-indigo-200/70 bg-indigo-50/50 px-4 py-3">Routine help rate (30d): <span class="font-semibold">{{ $monitoringMetrics['feedback_help_rate_30d'] }}%</span></div>
+                </div>
+
                 <div class="mt-5">
                     <h4 class="font-semibold text-gray-800">Recent Moderation Actions</h4>
                     <div class="space-y-2 mt-3">

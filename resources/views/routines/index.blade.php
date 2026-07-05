@@ -31,15 +31,19 @@
                 <section class="bg-white shadow sm:rounded-lg p-5 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-800">Personalized recommendations</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">Rule-based suggestions</h3>
                             <p class="text-sm text-gray-600">
-                                Based on your latest mood: {{ $recommendations['latestMoodEmoji'] }} {{ $recommendations['latestMoodLabel'] }}
+                                Based on your latest mood and community engagement signals: {{ $recommendations['latestMoodEmoji'] }} {{ $recommendations['latestMoodLabel'] }}
                             </p>
                         </div>
                         <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                             {{ $recommendations['similarUserCount'] }} similar users matched
                         </span>
                     </div>
+
+                    <p class="text-xs text-gray-500 -mt-2">
+                        Current version uses heuristic ranking (mood match, similar-user activity, and engagement), not a trained machine-learning model.
+                    </p>
 
                     <div>
                         <p class="text-sm font-semibold text-gray-700 mb-2">Recommended coping strategies</p>
@@ -70,27 +74,71 @@
                                     </div>
 
                                     <div class="mt-3 flex flex-wrap items-center gap-2">
-                                        <form method="POST" action="{{ route('routines.upvote', $recommendedRoutine->id) }}">
+                                        <form method="POST" action="{{ route('routines.upvote', $recommendedRoutine->id) }}" data-async="like" data-routine-id="{{ $recommendedRoutine->id }}">
                                             @csrf
-                                            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200">
-                                                ❤ Like
+                                            <button type="submit" data-like-button="{{ $recommendedRoutine->id }}" class="text-xs px-3 py-1.5 rounded {{ isset($likedRoutineIds[$recommendedRoutine->id]) ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700' }} hover:bg-indigo-200">
+                                                {{ isset($likedRoutineIds[$recommendedRoutine->id]) ? '👍 Upvoted' : '👍 Upvote' }}
+                                            </button>
+                                        </form>
+
+                                        <form method="POST" action="{{ route('routines.downvote', $recommendedRoutine->id) }}" data-async="downvote" data-routine-id="{{ $recommendedRoutine->id }}">
+                                            @csrf
+                                            <button type="submit" data-downvote-button="{{ $recommendedRoutine->id }}" class="text-xs px-3 py-1.5 rounded {{ isset($downvotedRoutineIds[$recommendedRoutine->id]) ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-700' }} hover:bg-gray-200">
+                                                {{ isset($downvotedRoutineIds[$recommendedRoutine->id]) ? '👎 Downvoted' : '👎 Downvote' }}
                                             </button>
                                         </form>
 
                                         <form method="POST" action="{{ route('routines.save', $recommendedRoutine->id) }}">
                                             @csrf
-                                            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
-                                                Save routine
+                                            <button type="submit" class="text-xs px-3 py-1.5 rounded {{ isset($savedRoutineIds[$recommendedRoutine->id]) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700' }} hover:bg-gray-200">
+                                                {{ isset($savedRoutineIds[$recommendedRoutine->id]) ? 'Saved' : 'Save' }}
                                             </button>
                                         </form>
 
-                                        <a
-                                            href="#routine-{{ $recommendedRoutine->id }}"
-                                            class="text-xs px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                            data-start-now="{{ $recommendedRoutine->id }}"
-                                        >
-                                            Start now
-                                        </a>
+                                        @if($recommendedRoutine->user_id !== Auth::id())
+                                            <details class="text-xs">
+                                                <summary class="cursor-pointer px-3 py-1.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">Report</summary>
+                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
+                                                    @csrf
+                                                    <input type="hidden" name="reportable_type" value="routine">
+                                                    <input type="hidden" name="reportable_id" value="{{ $recommendedRoutine->id }}">
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                                                        <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
+                                                            <option value="spam">Spam</option>
+                                                            <option value="harassment">Harassment</option>
+                                                            <option value="hate_speech">Hate speech</option>
+                                                            <option value="self_harm_risk">Self-harm risk</option>
+                                                            <option value="misinformation">Misinformation</option>
+                                                            <option value="other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1">Details (optional)</label>
+                                                        <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Add context for moderators"></textarea>
+                                                    </div>
+                                                    <button type="submit" class="text-xs px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">Submit report</button>
+                                                </form>
+                                            </details>
+                                        @else
+                                            <button type="button" class="text-xs px-3 py-1.5 rounded bg-amber-100 text-amber-500 cursor-not-allowed" disabled>
+                                                Report
+                                            </button>
+                                        @endif
+                                    </div>
+
+                                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                                        <span class="text-xs text-gray-500">Did this help?</span>
+                                        <form method="POST" action="{{ route('routines.feedback', $recommendedRoutine->id) }}" data-async="feedback" data-routine-id="{{ $recommendedRoutine->id }}">
+                                            @csrf
+                                            <input type="hidden" name="helped" value="1">
+                                            <button type="submit" data-feedback-button="{{ $recommendedRoutine->id }}" data-helped-value="1" class="text-xs px-2.5 py-1 rounded {{ optional($routineFeedbackByRoutineId[$recommendedRoutine->id] ?? null)->helped === true ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700' }} hover:bg-emerald-100">Yes</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('routines.feedback', $recommendedRoutine->id) }}" data-async="feedback" data-routine-id="{{ $recommendedRoutine->id }}">
+                                            @csrf
+                                            <input type="hidden" name="helped" value="0">
+                                            <button type="submit" data-feedback-button="{{ $recommendedRoutine->id }}" data-helped-value="0" class="text-xs px-2.5 py-1 rounded {{ optional($routineFeedbackByRoutineId[$recommendedRoutine->id] ?? null)->helped === false ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-700' }} hover:bg-rose-100">Not yet</button>
+                                        </form>
                                     </div>
 
                                     <details class="mt-3">
@@ -108,6 +156,8 @@
                                                 @if($recommendedRoutine->recommendation_is_preferred_category)
                                                     <li>Aligns with categories you engage with most.</li>
                                                 @endif
+                                                <li>Unique participants engaged: {{ $recommendedRoutine->recommendation_unique_actor_count }}.</li>
+                                                <li>Freshness bonus: {{ $recommendedRoutine->recommendation_freshness_bonus }}.</li>
                                                 <li>Community engagement score: {{ $recommendedRoutine->recommendation_engagement_score }}.</li>
                                             </ul>
                                         </div>
@@ -241,7 +291,6 @@
                             </p>
                             <p class="mt-2 text-gray-800">{{ $routine->body }}</p>
                         </div>
-                        <span class="text-sm text-gray-400 ml-4" data-routine-like-count="{{ $routine->id }}">{{ $routine->likes_count }} ❤</span>
                     </div>
 
                     <div class="mt-3 flex flex-wrap gap-2">
@@ -249,8 +298,17 @@
                             @csrf
                             <button type="submit"
                                 data-like-button="{{ $routine->id }}"
-                                class="text-sm px-3 py-1 rounded {{ isset($likedRoutineIds[$routine->id]) ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700' }} hover:bg-indigo-200">
-                                {{ isset($likedRoutineIds[$routine->id]) ? '❤ Liked' : '❤ Like' }}
+                                class="text-sm px-3 py-1 rounded {{ isset($likedRoutineIds[$routine->id]) ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700' }} hover:bg-indigo-200">
+                                {{ isset($likedRoutineIds[$routine->id]) ? '👍 Upvoted' : '👍 Upvote' }}
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('routines.downvote', $routine->id) }}" data-async="downvote" data-routine-id="{{ $routine->id }}">
+                            @csrf
+                            <button type="submit"
+                                data-downvote-button="{{ $routine->id }}"
+                                class="text-sm px-3 py-1 rounded {{ isset($downvotedRoutineIds[$routine->id]) ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-700' }} hover:bg-gray-200">
+                                {{ isset($downvotedRoutineIds[$routine->id]) ? '👎 Downvoted' : '👎 Downvote' }}
                             </button>
                         </form>
 
@@ -258,13 +316,13 @@
                             @csrf
                             <button type="submit"
                                 class="text-sm px-3 py-1 rounded {{ isset($savedRoutineIds[$routine->id]) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700' }} hover:bg-gray-200">
-                                {{ isset($savedRoutineIds[$routine->id]) ? 'Bookmarked' : 'Bookmark' }}
+                                {{ isset($savedRoutineIds[$routine->id]) ? 'Saved' : 'Save' }}
                             </button>
                         </form>
 
                         @if($routine->user_id !== Auth::id())
                             <details class="text-sm">
-                                <summary class="cursor-pointer px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">Report routine</summary>
+                                <summary class="cursor-pointer px-3 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">Report</summary>
                                 <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
                                     @csrf
                                     <input type="hidden" name="reportable_type" value="routine">
@@ -292,25 +350,29 @@
                                     </button>
                                 </form>
                             </details>
+                        @else
+                            <button type="button" class="text-sm px-3 py-1 rounded bg-amber-100 text-amber-500 cursor-not-allowed" disabled>
+                                Report
+                            </button>
                         @endif
                     </div>
 
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        @foreach($reactionMeta as $reaction => $meta)
-                            <form method="POST" action="{{ route('routines.react', $routine->id) }}">
-                                @csrf
-                                <input type="hidden" name="reaction" value="{{ $reaction }}">
-                                <button type="submit"
-                                    class="text-xs px-2.5 py-1 rounded border {{ (optional($myReactions[$routine->id] ?? null)->reaction === $reaction) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600' }}">
-                                    {{ $meta['emoji'] }} {{ $meta['label'] }}
-                                    <span class="ml-1 text-gray-500">{{ $reactionCountsByRoutine[$routine->id][$reaction] ?? 0 }}</span>
-                                </button>
-                            </form>
-                        @endforeach
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-gray-500">Did this help?</span>
+                        <form method="POST" action="{{ route('routines.feedback', $routine->id) }}" data-async="feedback" data-routine-id="{{ $routine->id }}">
+                            @csrf
+                            <input type="hidden" name="helped" value="1">
+                            <button type="submit" data-feedback-button="{{ $routine->id }}" data-helped-value="1" class="text-xs px-2.5 py-1 rounded {{ optional($routineFeedbackByRoutineId[$routine->id] ?? null)->helped === true ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700' }} hover:bg-emerald-100">Yes</button>
+                        </form>
+                        <form method="POST" action="{{ route('routines.feedback', $routine->id) }}" data-async="feedback" data-routine-id="{{ $routine->id }}">
+                            @csrf
+                            <input type="hidden" name="helped" value="0">
+                            <button type="submit" data-feedback-button="{{ $routine->id }}" data-helped-value="0" class="text-xs px-2.5 py-1 rounded {{ optional($routineFeedbackByRoutineId[$routine->id] ?? null)->helped === false ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-700' }} hover:bg-rose-100">Not yet</button>
+                        </form>
                     </div>
 
                     <div class="mt-2 text-xs text-gray-500">
-                        {{ $routine->saves_count }} saved · {{ $routine->comments_count }} comments · {{ $reactionCountsByRoutine[$routine->id]->sum() }} reactions · {{ $engagementCountsByRoutine[$routine->id] }} total engagement
+                        {{ $routine->saves_count }} saved · {{ $routine->comments_count }} comments
                     </div>
 
                     <div class="mt-4 border-t border-gray-100 pt-4">
@@ -346,164 +408,41 @@
                                 <div class="space-y-2">
                                     @forelse($routine->comments as $comment)
                                         <div class="bg-gray-50 border border-gray-100 rounded px-3 py-2" data-thread-root>
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p class="text-xs text-gray-500">
-                                                {{ $comment->display_author }} · {{ optional($comment->created_at)->diffForHumans() }}
-                                            </p>
-                                            <p class="text-sm text-gray-700 mt-1">{{ $comment->body }}</p>
-                                        </div>
-
-                                        @if($comment->user_id === Auth::id())
-                                            <form method="POST" action="{{ route('routines.comments.destroy', [$routine->id, $comment->id]) }}">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-xs text-red-600 hover:text-red-700">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-
-                                    <div class="mt-2 flex flex-wrap items-center gap-3 text-xs">
-                                        <div class="inline-flex items-center gap-2">
-                                            @foreach($commentReactionMeta as $reaction => $meta)
-                                                <form method="POST" action="{{ route('routines.comments.react', [$routine->id, $comment->id]) }}" data-async="comment-reaction" data-comment-id="{{ $comment->id }}">
-                                                    @csrf
-                                                    <input type="hidden" name="reaction" value="{{ $reaction }}">
-                                                    <button
-                                                        type="submit"
-                                                        data-comment-reaction-button="{{ $comment->id }}"
-                                                        data-reaction="{{ $reaction }}"
-                                                        class="rounded border px-2 py-1 {{ (optional($myCommentReactions[$comment->id] ?? null)->reaction === $reaction) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600' }}"
-                                                    >
-                                                        {{ $meta['emoji'] }} {{ $meta['label'] }}
-                                                        <span class="ml-1 text-gray-500" data-comment-reaction-count="{{ $comment->id }}" data-reaction="{{ $reaction }}">{{ $comment->reactions->where('reaction', $reaction)->count() }}</span>
-                                                    </button>
-                                                </form>
-                                            @endforeach
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            class="text-indigo-600 hover:text-indigo-700"
-                                            data-reply-toggle="{{ $comment->id }}"
-                                        >
-                                            Reply
-                                        </button>
-
-                                        @if($comment->user_id !== Auth::id())
-                                            <details>
-                                                <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
-                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2 min-w-64" data-async="report">
-                                                    @csrf
-                                                    <input type="hidden" name="reportable_type" value="comment">
-                                                    <input type="hidden" name="reportable_id" value="{{ $comment->id }}">
-                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Report reason</label>
-                                                    <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
-                                                        <option value="spam">Spam</option>
-                                                        <option value="harassment">Harassment</option>
-                                                        <option value="hate_speech">Hate speech</option>
-                                                        <option value="self_harm_risk">Self-harm risk</option>
-                                                        <option value="misinformation">Misinformation</option>
-                                                        <option value="other">Other</option>
-                                                    </select>
-                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">What happened?</label>
-                                                    <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Add context for the moderation team"></textarea>
-                                                    <button type="submit" class="w-full text-xs px-2.5 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">Submit report</button>
-                                                </form>
-                                            </details>
-                                        @endif
-
-                                        @if($comment->replies->count() > 0)
-                                            <button
-                                                type="button"
-                                                class="text-gray-500 hover:text-gray-700"
-                                                data-thread-toggle="{{ $comment->id }}"
-                                            >
-                                                Hide replies ({{ $comment->replies->count() }})
-                                            </button>
-                                        @endif
-                                    </div>
-
-                                    <form
-                                        method="POST"
-                                        action="{{ route('routines.comments.store', $routine->id) }}"
-                                        class="mt-2 hidden"
-                                        data-reply-form="{{ $comment->id }}"
-                                    >
-                                        @csrf
-                                        <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-                                        <div class="flex items-start gap-2">
-                                            <div class="flex-1">
-                                                <textarea
-                                                    name="body"
-                                                    rows="2"
-                                                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                                                    placeholder="Write a reply..."
-                                                    required
-                                                ></textarea>
-                                                <label class="inline-flex items-center mt-2 text-xs text-gray-600">
-                                                    <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
-                                                    Reply anonymously
-                                                </label>
-                                            </div>
-                                            <button
-                                                type="submit"
-                                                class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
-                                            >
-                                                Reply
-                                            </button>
-                                        </div>
-                                    </form>
-
-                                    <div class="mt-2 space-y-2" data-thread-replies="{{ $comment->id }}">
-                                        @foreach($comment->replies as $reply)
-                                            <div class="ml-4 bg-white border border-gray-100 rounded px-3 py-2">
-                                                <div class="flex items-start justify-between gap-3">
-                                                    <div>
-                                                        <p class="text-xs text-gray-500">
-                                                            {{ $reply->display_author }} · {{ optional($reply->created_at)->diffForHumans() }}
-                                                        </p>
-                                                        <p class="text-sm text-gray-700 mt-1">{{ $reply->body }}</p>
-
-                                                        <div class="mt-2 inline-flex items-center gap-2 text-xs">
-                                                            @foreach($commentReactionMeta as $reaction => $meta)
-                                                                <form method="POST" action="{{ route('routines.comments.react', [$routine->id, $reply->id]) }}" data-async="comment-reaction" data-comment-id="{{ $reply->id }}">
-                                                                    @csrf
-                                                                    <input type="hidden" name="reaction" value="{{ $reaction }}">
-                                                                    <button
-                                                                        type="submit"
-                                                                        data-comment-reaction-button="{{ $reply->id }}"
-                                                                        data-reaction="{{ $reaction }}"
-                                                                        class="rounded border px-2 py-1 {{ (optional($myCommentReactions[$reply->id] ?? null)->reaction === $reaction) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600' }}"
-                                                                    >
-                                                                        {{ $meta['emoji'] }} {{ $meta['label'] }}
-                                                                        <span class="ml-1 text-gray-500" data-comment-reaction-count="{{ $reply->id }}" data-reaction="{{ $reaction }}">{{ $reply->reactions->where('reaction', $reaction)->count() }}</span>
-                                                                    </button>
-                                                                </form>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-
-                                                    @if($reply->user_id === Auth::id())
-                                                        <form method="POST" action="{{ route('routines.comments.destroy', [$routine->id, $reply->id]) }}">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="text-xs text-red-600 hover:text-red-700">
-                                                                Delete
-                                                            </button>
-                                                        </form>
-                                                    @endif
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p class="text-xs text-gray-500">
+                                                        {{ $comment->display_author }} · {{ optional($comment->created_at)->diffForHumans() }}
+                                                    </p>
+                                                    <p class="text-sm text-gray-700 mt-1">{{ $comment->body }}</p>
                                                 </div>
 
-                                                @if($reply->user_id !== Auth::id())
-                                                    <details class="mt-2 text-xs">
+                                                @if($comment->user_id === Auth::id())
+                                                    <form method="POST" action="{{ route('routines.comments.destroy', [$routine->id, $comment->id]) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-xs text-red-600 hover:text-red-700">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+
+                                            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                                                <button
+                                                    type="button"
+                                                    class="text-indigo-600 hover:text-indigo-700"
+                                                    data-reply-toggle="{{ $comment->id }}"
+                                                >
+                                                    Reply
+                                                </button>
+
+                                                @if($comment->user_id !== Auth::id())
+                                                    <details>
                                                         <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
-                                                        <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
+                                                        <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2 min-w-64" data-async="report">
                                                             @csrf
                                                             <input type="hidden" name="reportable_type" value="comment">
-                                                            <input type="hidden" name="reportable_id" value="{{ $reply->id }}">
+                                                            <input type="hidden" name="reportable_id" value="{{ $comment->id }}">
                                                             <label class="block text-xs font-semibold text-gray-700 mb-1">Report reason</label>
                                                             <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
                                                                 <option value="spam">Spam</option>
@@ -519,9 +458,96 @@
                                                         </form>
                                                     </details>
                                                 @endif
+
+                                                @if($comment->replies->count() > 0)
+                                                    <button
+                                                        type="button"
+                                                        class="text-gray-500 hover:text-gray-700"
+                                                        data-thread-toggle="{{ $comment->id }}"
+                                                    >
+                                                        Hide replies ({{ $comment->replies->count() }})
+                                                    </button>
+                                                @endif
                                             </div>
-                                        @endforeach
-                                    </div>
+
+                                            <form
+                                                method="POST"
+                                                action="{{ route('routines.comments.store', $routine->id) }}"
+                                                class="mt-2 hidden"
+                                                data-reply-form="{{ $comment->id }}"
+                                            >
+                                                @csrf
+                                                <input type="hidden" name="parent_id" value="{{ $comment->id }}">
+                                                <div class="flex items-start gap-2">
+                                                    <div class="flex-1">
+                                                        <textarea
+                                                            name="body"
+                                                            rows="2"
+                                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                                            placeholder="Write a reply..."
+                                                            required
+                                                        ></textarea>
+                                                        <label class="inline-flex items-center mt-2 text-xs text-gray-600">
+                                                            <input type="checkbox" name="is_anonymous" value="1" class="rounded border-gray-300 text-indigo-600 mr-2">
+                                                            Reply anonymously
+                                                        </label>
+                                                    </div>
+                                                    <button
+                                                        type="submit"
+                                                        class="text-sm bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700"
+                                                    >
+                                                        Reply
+                                                    </button>
+                                                </div>
+                                            </form>
+
+                                            <div class="mt-2 space-y-2" data-thread-replies="{{ $comment->id }}">
+                                                @foreach($comment->replies as $reply)
+                                                    <div class="ml-4 bg-white border border-gray-100 rounded px-3 py-2">
+                                                        <div class="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <p class="text-xs text-gray-500">
+                                                                    {{ $reply->display_author }} · {{ optional($reply->created_at)->diffForHumans() }}
+                                                                </p>
+                                                                <p class="text-sm text-gray-700 mt-1">{{ $reply->body }}</p>
+                                                            </div>
+
+                                                            @if($reply->user_id === Auth::id())
+                                                                <form method="POST" action="{{ route('routines.comments.destroy', [$routine->id, $reply->id]) }}">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="text-xs text-red-600 hover:text-red-700">
+                                                                        Delete
+                                                                    </button>
+                                                                </form>
+                                                            @endif
+                                                        </div>
+
+                                                        @if($reply->user_id !== Auth::id())
+                                                            <details class="mt-2 text-xs">
+                                                                <summary class="cursor-pointer text-amber-600 hover:text-amber-700">Report</summary>
+                                                                <form method="POST" action="{{ route('reports.store') }}" class="mt-2 p-3 rounded border border-amber-200 bg-amber-50/40 space-y-2" data-async="report">
+                                                                    @csrf
+                                                                    <input type="hidden" name="reportable_type" value="comment">
+                                                                    <input type="hidden" name="reportable_id" value="{{ $reply->id }}">
+                                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Report reason</label>
+                                                                    <select name="reason" class="w-full rounded border-gray-300 text-xs" required>
+                                                                        <option value="spam">Spam</option>
+                                                                        <option value="harassment">Harassment</option>
+                                                                        <option value="hate_speech">Hate speech</option>
+                                                                        <option value="self_harm_risk">Self-harm risk</option>
+                                                                        <option value="misinformation">Misinformation</option>
+                                                                        <option value="other">Other</option>
+                                                                    </select>
+                                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">What happened?</label>
+                                                                    <textarea name="details" rows="2" class="w-full rounded border-gray-300 text-xs" placeholder="Add context for the moderation team"></textarea>
+                                                                    <button type="submit" class="w-full text-xs px-2.5 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700">Submit report</button>
+                                                                </form>
+                                                            </details>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     @empty
                                         <p class="text-sm text-gray-500">No comments yet. Be the first to react with words.</p>
@@ -544,48 +570,52 @@
     </div>
 
     <script>
-        const applyCommentReactionStyles = (button, isActive) => {
-            if (isActive) {
-                button.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
-                button.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
-                return;
-            }
-
-            button.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
-            button.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
-        };
-
         const updateRoutineLikeUi = (routineId, liked, likesCount) => {
             const likeButton = document.querySelector(`[data-like-button="${routineId}"]`);
-            const likeCount = document.querySelector(`[data-routine-like-count="${routineId}"]`);
 
             if (likeButton) {
-                likeButton.textContent = liked ? '❤ Liked' : '❤ Like';
-                likeButton.classList.remove('bg-red-100', 'text-red-700', 'bg-indigo-100', 'text-indigo-700');
+                likeButton.textContent = liked ? '👍 Upvoted' : '👍 Upvote';
+                likeButton.classList.remove('bg-emerald-100', 'text-emerald-700', 'bg-indigo-100', 'text-indigo-700');
 
                 if (liked) {
-                    likeButton.classList.add('bg-red-100', 'text-red-700');
+                    likeButton.classList.add('bg-emerald-100', 'text-emerald-700');
                 } else {
                     likeButton.classList.add('bg-indigo-100', 'text-indigo-700');
                 }
             }
+        };
 
-            if (likeCount) {
-                likeCount.textContent = `${likesCount} ❤`;
+        const updateRoutineDownvoteUi = (routineId, downvoted, downvotesCount) => {
+            const downvoteButton = document.querySelector(`[data-downvote-button="${routineId}"]`);
+
+            if (downvoteButton) {
+                downvoteButton.textContent = downvoted ? '👎 Downvoted' : '👎 Downvote';
+                downvoteButton.classList.remove('bg-rose-100', 'text-rose-700', 'bg-gray-100', 'text-gray-700');
+
+                if (downvoted) {
+                    downvoteButton.classList.add('bg-rose-100', 'text-rose-700');
+                } else {
+                    downvoteButton.classList.add('bg-gray-100', 'text-gray-700');
+                }
             }
         };
 
-        const updateCommentReactionUi = (commentId, activeReaction, counts) => {
-            const buttons = document.querySelectorAll(`[data-comment-reaction-button="${commentId}"]`);
-            buttons.forEach((button) => {
-                const reaction = button.getAttribute('data-reaction');
-                applyCommentReactionStyles(button, reaction === activeReaction);
-            });
+        const updateRoutineFeedbackUi = (routineId, helped) => {
+            const buttons = document.querySelectorAll(`[data-feedback-button="${routineId}"]`);
 
-            Object.entries(counts).forEach(([reaction, total]) => {
-                const countNode = document.querySelector(`[data-comment-reaction-count="${commentId}"][data-reaction="${reaction}"]`);
-                if (countNode) {
-                    countNode.textContent = String(total);
+            buttons.forEach((button) => {
+                const helpedValue = button.getAttribute('data-helped-value') === '1';
+
+                button.classList.remove('bg-emerald-100', 'text-emerald-800', 'bg-rose-100', 'text-rose-800', 'bg-gray-100', 'text-gray-700');
+
+                if (helpedValue === helped) {
+                    if (helpedValue) {
+                        button.classList.add('bg-emerald-100', 'text-emerald-800');
+                    } else {
+                        button.classList.add('bg-rose-100', 'text-rose-800');
+                    }
+                } else {
+                    button.classList.add('bg-gray-100', 'text-gray-700');
                 }
             });
         };
@@ -617,19 +647,21 @@
                 try {
                     const payload = await submitAsyncForm(form);
                     updateRoutineLikeUi(payload.routine_id, payload.liked, payload.likes_count);
+                    updateRoutineDownvoteUi(payload.routine_id, payload.downvoted, payload.downvotes_count);
                 } catch (error) {
                     console.error(error);
                 }
             });
         });
 
-        document.querySelectorAll('form[data-async="comment-reaction"]').forEach((form) => {
+        document.querySelectorAll('form[data-async="downvote"]').forEach((form) => {
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
                 try {
                     const payload = await submitAsyncForm(form);
-                    updateCommentReactionUi(payload.comment_id, payload.active_reaction, payload.counts || {});
+                    updateRoutineDownvoteUi(payload.routine_id, payload.downvoted, payload.downvotes_count);
+                    updateRoutineLikeUi(payload.routine_id, payload.liked, payload.likes_count);
                 } catch (error) {
                     console.error(error);
                 }
@@ -648,6 +680,19 @@
                     if (details) {
                         details.open = false;
                     }
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        document.querySelectorAll('form[data-async="feedback"]').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                try {
+                    const payload = await submitAsyncForm(form);
+                    updateRoutineFeedbackUi(payload.routine_id, payload.helped);
                 } catch (error) {
                     console.error(error);
                 }
@@ -682,25 +727,6 @@
                 const countMatch = button.textContent.match(/\((\d+)\)/);
                 const countLabel = countMatch ? countMatch[1] : '0';
                 button.textContent = `${isHidden ? 'Show' : 'Hide'} replies (${countLabel})`;
-            });
-        });
-
-        document.querySelectorAll('[data-start-now]').forEach((link) => {
-            link.addEventListener('click', (event) => {
-                const id = link.getAttribute('data-start-now');
-                const target = document.getElementById(`routine-${id}`);
-
-                if (!target) {
-                    return;
-                }
-
-                event.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                target.classList.add('ring-2', 'ring-indigo-300');
-
-                window.setTimeout(() => {
-                    target.classList.remove('ring-2', 'ring-indigo-300');
-                }, 1400);
             });
         });
     </script>

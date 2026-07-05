@@ -76,6 +76,16 @@
                     <div class="rounded border border-gray-100 px-4 py-3">Journals (7d): <span class="font-semibold">{{ $activitySummary['journals_7d'] }}</span></div>
                 </div>
             </section>
+
+            <section class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Routine Outcome Feedback</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-sm">
+                    <div class="rounded border border-gray-100 px-4 py-3">Feedback submitted: <span class="font-semibold">{{ $feedbackMetrics['submitted'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Marked helpful: <span class="font-semibold">{{ $feedbackMetrics['helped'] }}</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Help rate: <span class="font-semibold">{{ $feedbackMetrics['helpRate'] }}%</span></div>
+                    <div class="rounded border border-gray-100 px-4 py-3">Avg mood delta after helpful routines: <span class="font-semibold">{{ $feedbackMetrics['avgMoodDeltaHelped'] }}</span></div>
+                </div>
+            </section>
         </div>
     </div>
 

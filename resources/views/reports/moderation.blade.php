@@ -17,9 +17,18 @@
                 <h3 class="text-lg font-semibold text-gray-800">Pending Reports</h3>
                 <p class="text-sm text-gray-600 mt-1">Review reports, remove unsafe content when needed, and capture moderation notes.</p>
 
+                @if(($reportStats['self_harm_pending'] ?? 0) > 0)
+                    <div class="mt-3 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                        <p class="font-semibold">Urgent safety alert</p>
+                        <p class="mt-1">
+                            {{ $reportStats['self_harm_pending'] }} pending self-harm risk report(s) are prioritized at the top of this queue.
+                        </p>
+                    </div>
+                @endif
+
                 <div class="space-y-4 mt-4">
                     @forelse($pendingReports as $report)
-                        <article class="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+                        <article class="rounded-xl {{ $report->reason === 'self_harm_risk' ? 'border-rose-300 bg-rose-50/60' : 'border-amber-200 bg-amber-50/50' }} p-4">
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <p class="font-semibold text-gray-800">{{ class_basename($report->reportable_type) }} report #{{ $report->id }}</p>
@@ -27,7 +36,12 @@
                                         Reported by {{ $report->reporter?->name ?? 'Unknown user' }} · {{ optional($report->created_at)->diffForHumans() }}
                                     </p>
                                 </div>
-                                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">Pending</span>
+                                <div class="flex items-center gap-2">
+                                    @if($report->reason === 'self_harm_risk')
+                                        <span class="text-xs bg-rose-100 text-rose-800 px-2 py-1 rounded-full">Urgent Safety</span>
+                                    @endif
+                                    <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">Pending</span>
+                                </div>
                             </div>
 
                             <p class="text-sm text-gray-700 mt-2">Reason: <span class="font-medium">{{ str_replace('_', ' ', $report->reason) }}</span></p>
